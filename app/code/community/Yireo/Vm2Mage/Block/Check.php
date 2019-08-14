@@ -4,7 +4,7 @@
  *
  * @author Yireo
  * @package Vm2Mage
- * @copyright Copyright 2013
+ * @copyright Copyright 2011
  * @license Open Source License
  * @link http://www.yireo.com
  */
@@ -134,106 +134,8 @@ class Yireo_Vm2Mage_Block_Check extends Mage_Core_Block_Template
 
         $collection = Mage::getResourceModel('api/user_collection');
         $result = ($collection->count() > 0) ? self::CHECK_OK : self::CHECK_ERROR;
-        $this->addResult('conf', 'API-user', $result, 'You should create an API-user with API resource-access');
-
-        $config = Mage::app()->getConfig()->getModuleConfig('Yireo_Vm2Mage');
-        if(!empty($config) && !empty($config->version)) {
-            $version = (string)$config->version;
-            $result = self::CHECK_OK;
-        } else {
-            $result = self::CHECK_ERROR;
-            $version = '[unknown]';
-        }
-        $this->addResult('conf', 'Vm2Mage version', $result, 'Module version: '.$version);
-
-        $config = Mage::app()->getConfig()->getModuleConfig('Yireo_VmOrder');
-        if(!empty($config) && !empty($config->version)) {
-            $version = (string)$config->version;
-            $result = self::CHECK_OK;
-        } else {
-            $result = self::CHECK_ERROR;
-            $version = '[unknown]';
-        }
-        $this->addResult('conf', 'VmOrder version', $result, 'Module version: '.$version);
-
-        $count = Mage::getResourceModel('catalog/product_collection')->count();
-        $this->addResult('stats', 'Products', self::CHECK_OK, 'Product collection count: '.(int)$count);
-
-        $count = Mage::getResourceModel('catalog/category_collection')->count();
-        $this->addResult('stats', 'Categories', self::CHECK_OK, 'Category collection count: '.(int)$count);
-
-        $count = Mage::getResourceModel('customer/customer_collection')->count();
-        $this->addResult('stats', 'Customers', self::CHECK_OK, 'Customer collection count: '.(int)$count);
-
-        try {
-            $collection = Mage::getResourceModel('vmorder/order_collection');
-            if(empty($collection)) {
-                $result = self::CHECK_ERROR;
-                $count = 0;
-            } else {
-                $result = self::CHECK_OK;
-                $count = $collection->count();
-            }
-        } catch(Exception $e) {
-            $result = self::CHECK_ERROR;
-            $count = -1;
-        }
-        $this->addResult('stats', 'VmOrder', $result, 'VmOrder order-collection count: '.(int)$count);
+        $this->addResult('system', 'API-user', $result, 'You should create an API-user with API resource-access');
 
         return $this->system_checks;
-    }
-
-    /*
-     * Helper to return the URL for deleting all categories
-     *
-     * @access public
-     * @param null
-     * @return string
-     */
-    public function getDeleteCategoriesUrl()
-    {
-        return Mage::getModel('adminhtml/url')->getUrl('vm2mage/index/deleteCategories');
-    }
-
-    /*
-     * Helper to return the URL for deleting all products
-     *
-     * @access public
-     * @param null
-     * @return string
-     */
-    public function getDeleteProductsUrl()
-    {
-        return Mage::getModel('adminhtml/url')->getUrl('vm2mage/index/deleteProducts');
-    }
-
-    /**
-     * Render block HTML
-     *
-     * @access protected
-     * @param null
-     * @return mixed
-     */
-    protected function _toHtml()
-    {
-        $this->setChild('products_delete_button',
-            $this->getLayout()->createBlock('adminhtml/widget_button')
-                ->setData(array(
-                    'label' => Mage::helper('catalog')->__('Delete All Products'),
-                    'onclick' => 'window.location = \''.$this->getDeleteProductsUrl().'\'',
-                    'class' => 'delete'
-                ))
-        );
-
-        $this->setChild('categories_delete_button',
-            $this->getLayout()->createBlock('adminhtml/widget_button')
-                ->setData(array(
-                    'label' => Mage::helper('catalog')->__('Delete All Categories'),
-                    'onclick' => 'window.location = \''.$this->getDeleteCategoriesUrl().'\'',
-                    'class' => 'delete'
-                ))
-        );
-
-        return parent::_toHtml();
     }
 }

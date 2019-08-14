@@ -4,7 +4,7 @@
  *
  * @author Yireo
  * @package Vm2Mage
- * @copyright Copyright 2013
+ * @copyright Copyright 2011
  * @license Open Source License
  * @link http://www.yireo.com
  */
@@ -62,11 +62,6 @@ class Yireo_Vm2Mage_Helper_Data extends Mage_Core_Helper_Abstract
      */
     public function debug($string, $mixed = null)
     {
-        // Disable by setting
-        if(Mage::getStoreConfig('vm2mage/settings/debug_log') == 0) {
-            return false;
-        }
-
         // Construct the debug-string
         if($mixed) {
             $string .= ': '.var_export($mixed, true);
@@ -76,25 +71,6 @@ class Yireo_Vm2Mage_Helper_Data extends Mage_Core_Helper_Abstract
         if(@is_writable($logfile)) {
             @file_put_contents($logfile, $string."\n", FILE_APPEND);
         }
-    }
-
-    /*
-     * Helper-method to initialize debugging
-     *
-     * @param string $string
-     * @param mixed $mixed
-     * @return null
-     */
-    public function initDebug()
-    {
-        // Disable by setting
-        if(Mage::getStoreConfig('vm2mage/settings/debug_log') == 0) {
-            return false;
-        }
-
-        ini_set('display_errors', 1);
-        Mage::setIsDeveloperMode(true);
-        return true;
     }
 
     /*

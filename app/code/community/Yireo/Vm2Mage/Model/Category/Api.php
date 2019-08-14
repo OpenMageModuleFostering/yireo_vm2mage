@@ -4,7 +4,7 @@
  *
  * @author Yireo
  * @package Vm2Mage
- * @copyright Copyright 2013
+ * @copyright Copyright 2011
  * @license Open Source License
  * @link http://www.yireo.com
  */
@@ -26,13 +26,13 @@ class Yireo_Vm2Mage_Model_Category_Api extends Mage_Catalog_Model_Category_Api
 
         // Decode all values
         $data = Mage::helper('vm2mage')->decode($data);
-        Mage::helper('vm2mage')->debug('VirtueMart category', $data);
+        //Mage::helper('vm2mage')->debug('VirtueMart category', $data);
 
         // Get a clean category-object
         $category = Mage::getModel('catalog/category');
 
         // Try to load the category 
-        $categoryId = Mage::helper('vm2mage/category')->getMageId($data['id'], $data['migration_code']);
+        $categoryId = Mage::helper('vm2mage/category')->getMageId($data['id']);
         if(!empty($categoryId)) {
             $category->load($categoryId);
         }
@@ -42,7 +42,7 @@ class Yireo_Vm2Mage_Model_Category_Api extends Mage_Catalog_Model_Category_Api
 
         // Get the parent by taking it from VirtueMart
         if(isset($data['parent_id']) && $data['parent_id'] > 0) {
-            $parentId = Mage::helper('vm2mage/category')->getMageId($data['parent_id'], $data['migration_code']);
+            $parentId = Mage::helper('vm2mage/category')->getMageId($data['parent_id']);
 
             // Do not migrate this category (yet) if its parent does not exist yet
             if(!$parentId > 0) {
@@ -81,13 +81,11 @@ class Yireo_Vm2Mage_Model_Category_Api extends Mage_Catalog_Model_Category_Api
             $isNew = false;
         }
 
-        $state = (isset($data['status'])) ? $data['status'] : $data['published'];
-
         // Set common attributes
         $category->setData($category->getData())
             ->setName($data['name'])
             ->setDescription($data['description'])
-            ->setIsActive($state)
+            ->setIsActive($data['status']) 
         ;
 
         // @todo: Get the remote images
@@ -99,23 +97,19 @@ class Yireo_Vm2Mage_Model_Category_Api extends Mage_Catalog_Model_Category_Api
             return array(0, $e->getMessage());
         }
 
-        // Move this categort
-        if(!in_array($parentId, array(0, $category->getParentId(), $category->getId()))) {
-            try {
-                $category->move($category->getId(), $parentId);
-            } catch(Exception $e) {
-                // Do nothing
-            }
+        // Move this 
+        if($category->getParentId() != $parentId) {
+            $category->getResource()->move($category->getId(), $parentId);
         }
 
-        // Save this category-relation within Vm2Mage
-        Mage::helper('vm2mage/category')->saveRelation($data['id'], $category->getId(), $data['migration_code']);
+        // Safe this category-relation within Vm2Mage
+        Mage::helper('vm2mage/category')->saveRelation($data['id'], $category->getId());
 
         // Return true by default
         if($isNew) {
-            return array(1, "Created new category ".$category->getName(), $data['id']);
+            return array(1, "Created new category ".$category->getName());
         } else {
-            return array(1, "Updated category ".$category->getName(), $data['id']);
+            return array(1, "Updated category ".$category->getName());
         }
     }
 

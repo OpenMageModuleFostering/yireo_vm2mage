@@ -1,2 +1,120 @@
-<?xml version="1.0"?>
-<package><name>Yireo_Vm2Mage</name><version>0.10.9</version><stability>stable</stability><license>Open Source License</license><channel>community</channel><extends></extends><summary>No summary</summary><description>No description</description><notes>No notes</notes><authors><author><name>Yireo</name><user>yireo</user><email>info@yireo.com</email></author></authors><date>2013-12-27</date><time>1:32:50</time><compatible></compatible><dependencies><required><php><min>5.2.0</min><max>6.0.0</max></php></required></dependencies><contents><target name="mage"><dir name="skin"><dir name="adminhtml"><dir name="default"><dir name="default"><dir name="images"><dir name="vm2mage"><file name="check-error.png" hash="6a3c4bbf7dff2e4db08183b14329ef9c"/><file name="check-ok.png" hash="9fb629c79fc4a487088ac4aeeb23e40b"/><file name="check-warning.png" hash="39ccef05471d39a99a8fa2ddf4471d20"/></dir></dir></dir></dir></dir></dir><dir name="app"><dir name="etc"><dir name="modules"><file name="Yireo_Vm2Mage.xml" hash="bee76713ff8df9db330a8385b2465041"/></dir></dir><dir name="code"><dir name="community"><dir name="Yireo"><dir name="Vm2Mage"><dir name="controllers"><file name="IndexController.php" hash="323ec99b3f63cad12547d197cc31564d"/></dir><dir name="Block"><file name="Check.php" hash="24322e3ec477c16d99847e378e4f684d"/></dir><dir name="etc"><file name="api.xml" hash="c4bf74c7a340a02ff1f095b5371472f9"/><file name="config.xml" hash="dab54617a1f840f95f405434510edf1d"/><file name="system.xml" hash="093a9396a5915e29df53dcdfb596d7cd"/></dir><dir name="sql"><dir name="vm2mage_setup"><file name="mysql4-install-0.10.3.php" hash="c8468feeed506515b538ae9f7ed8c0da"/><file name="mysql4-install-0.5.4.php" hash="de6658876bc68103fa099a814ffb46e0"/><file name="mysql4-upgrade-0.10.2-0.10.3.php" hash="1b08a11ed06b626f9edc6b86dc0f8bb9"/></dir></dir><dir name="Helper"><file name="Attribute.php" hash="35e1c22da300cbe5f72e663c6e3b64a0"/><file name="Category.php" hash="a80a6e7b5fe9b48cc8d80ca5d5a588f8"/><file name="Data.php" hash="241cebe4a1b4dbc4dfd1bf94b633a45a"/><file name="Image.php" hash="01f753f938a2c3025e4286c1cb1a09af"/><file name="Price.php" hash="df91b573272cab2c1e6f86385a75bbae"/><file name="Product.php" hash="70b2a33d99fca8b3eacef7bd8419fb4e"/></dir><dir name="Model"><file name="Observer.php" hash="f0d803b0520bffdd7f14b56316efed0d"/><dir name="User"><file name="Api.php" hash="58413cb5f2d8002a4ff624927142b13b"/></dir><dir name="Rewrite"><dir name="Category"><dir name="Attribute"><dir name="Backend"><file name="Image.php" hash="9880fd05bb4bdbb8fc551ee7cace2e9d"/></dir></dir></dir></dir><dir name="Category"><file name="Api.php" hash="25b451dde1a7cb690553d2bd91614047"/></dir><dir name="Widget"><file name="Api.php" hash="2fbfde9bcb5528f2148c8e9133b7622d"/></dir><dir name="Product"><file name="Api.php" hash="511c4958ec2371481137085a795a0e3c"/></dir><dir name="Order"><file name="Api.php" hash="a66d742bc5011749a84da412b1b8ce32"/></dir><dir name="Attribute"><file name="Api.php" hash="4ed05d30baa43ed8a086066de22c8437"/></dir></dir></dir></dir></dir></dir><dir name="design"><dir name="adminhtml"><dir name="default"><dir name="default"><dir name="template"><dir name="vm2mage"><file name="check.phtml" hash="953b257a96841c5efadac97f0cf6614e"/></dir></dir></dir></dir></dir></dir></dir></target></contents></package>
+<?xml version="1.0" encoding="UTF-8"?>
+<package>
+    <name>Yireo_Vm2Mage</name>
+    <version>0.7.196</version>
+    <stability>stable</stability>
+    <channel>community</channel>
+    <license uri="http://www.yireo.com/">Open Source License</license>
+    <summary>See www.yireo.com/software for details</summary>
+    <description>See www.yireo.com/software for details</description>
+    <notes>See www.yireo.com/software for details</notes>
+    <date>2011-11-15</date>
+    <time>00:00:01</time>
+    <authors>
+        <author>
+            <name>Yireo</name>
+            <user>yireo</user>
+            <email>info@yireo.com</email>
+        </author>
+    </authors>
+
+    <contents>
+        <target name="mageskin">
+            <dir name="adminhtml">
+                <dir name="default">
+                    <dir name="default">
+                        <dir name="images">
+                            <dir name="vm2mage">
+                                <file name="check-ok.png" />
+                                <file name="check-warning.png" />
+                                <file name="check-error.png" />
+                            </dir>
+                        </dir>
+                    </dir>
+                </dir>
+            </dir>
+        </target>
+        <target name="magedesign">
+            <dir name="adminhtml">
+                <dir name="default">
+                    <dir name="default">
+                        <dir name="template">
+                            <dir name="vm2mage">
+                                <file name="check.phtml" />
+                            </dir>
+                        </dir>
+                    </dir>
+                </dir>
+            </dir>
+        </target>
+        <target name="magecommunity">
+            <dir name="Zend">
+                <dir name="XmlRpc">
+                    <file name="Server.php" />
+                </dir>
+            </dir>
+            <dir name="Yireo">
+                <dir name="Vm2Mage">
+                    <dir name="Block">
+                        <file name="Check.php" />
+                    </dir>
+                    <dir name="controllers">
+                        <file name="IndexController.php" />
+                    </dir>
+                    <dir name="etc">
+                        <file name="api.xml" />
+                        <file name="config.xml" />
+                    </dir>
+                    <dir name="Helper">
+                        <file name="Attribute.php" />
+                        <file name="Category.php" />
+                        <file name="Data.php" />
+                        <file name="Image.php" />
+                        <file name="Price.php" />
+                        <file name="Product.php" />
+                    </dir>
+                    <dir name="sql">
+                        <dir name="vm2mage_setup">
+                            <file name="mysql4-install-0.5.4.php" />
+                        </dir>
+                    </dir>
+                    <dir name="Model">
+                        <file name="Observer.php" />
+                        <dir name="Attribute">
+                            <file name="Api.php" />
+                        </dir>
+                        <dir name="Category">
+                            <file name="Api.php" />
+                        </dir>
+                        <dir name="Order">
+                            <file name="Api.php" />
+                        </dir>
+                        <dir name="Product">
+                            <file name="Api.php" />
+                        </dir>
+                        <dir name="User">
+                            <file name="Api.php" />
+                        </dir>
+                        <dir name="Widget">
+                            <file name="Api.php" />
+                        </dir>
+                    </dir>
+                </dir>
+            </dir>
+        </target>
+        <target name="mageetc">
+            <dir name="modules">
+                <file name="Yireo_Vm2Mage.xml" />
+            </dir>
+        </target>
+    </contents>
+    <compatible/>
+    <dependencies>
+        <required>
+            <php>
+                <min>5.2.8</min>
+                <max>6.0.0</max>
+            </php>
+        </required>
+    </dependencies>
+</package>

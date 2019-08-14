@@ -4,7 +4,7 @@
  *
  * @author Yireo
  * @package Vm2Mage
- * @copyright Copyright 2013
+ * @copyright Copyright 2011
  * @license Open Source License
  * @link http://www.yireo.com
  */
@@ -18,14 +18,13 @@ class Yireo_Vm2Mage_Helper_Category extends Yireo_Vm2Mage_Helper_Data
      * Method to get the Magento ID belonging to a specific VirtueMart ID
      *
      * @param int $vm_id
-     * @param string $migration_code
      * @return int
      */
-    public function getMageId($vm_id, $migration_code = null)
+    public function getMageId($vm_id)
     {
         $db = Mage::getSingleton('core/resource')->getConnection('core_read');
         $table = Mage::getSingleton('core/resource')->getTableName('vm2mage_categories');
-        $mage_id = $db->fetchOne( "SELECT `mage_id` FROM `$table` WHERE `vm_id` = '$vm_id' AND `migration_code` = '$migration_code'" );
+        $mage_id = $db->fetchOne( "SELECT `mage_id` FROM `$table` WHERE `vm_id` = '$vm_id'" );
         return $mage_id;
     }
 
@@ -34,22 +33,19 @@ class Yireo_Vm2Mage_Helper_Category extends Yireo_Vm2Mage_Helper_Data
      *
      * @param int $vm_id
      * @param int $mage_id
-     * @param string $migration_code
      * @return bool
      */
-    public function saveRelation($vm_id = 0, $mage_id = 0, $migration_code = null)
+    public function saveRelation($vm_id = 0, $mage_id = 0)
     {
         $db = Mage::getSingleton('core/resource')->getConnection('core_write');
         $table = Mage::getSingleton('core/resource')->getTableName('vm2mage_categories');
-        $query = "SELECT `mage_id` FROM `$table` WHERE `vm_id` = '$vm_id' AND `migration_code` = '$migration_code'";
-        $result = $db->fetchOne($query);
+        $result = $db->fetchOne( "SELECT `mage_id` FROM `$table` WHERE `vm_id` = '$vm_id'" );
 
-        if(!empty($result)) {
-            $query = "UPDATE `$table` SET `mage_id`='$mage_id' WHERE `vm_id`='$vm_id' AND `migration_code` = '$migration_code'";
+        if($result) {
+            $query = "UPDATE `$table` SET `mage_id`='$mage_id' WHERE `vm_id`='$vm_id'";
         } else {
-            $query = "INSERT INTO `$table` SET `vm_id` = '$vm_id', `mage_id`='$mage_id', `migration_code` = '$migration_code'";
+            $query = "INSERT INTO `$table` SET `vm_id` = '$vm_id', `mage_id`='$mage_id'";
         }
-        
         $db->query($query);
         return true;
     }

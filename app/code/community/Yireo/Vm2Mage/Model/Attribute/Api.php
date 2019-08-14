@@ -4,7 +4,7 @@
  *
  * @author Yireo
  * @package Vm2Mage
- * @copyright Copyright 2013
+ * @copyright Copyright 2011
  * @license Open Source License
  * @link http://www.yireo.com
  */
@@ -23,68 +23,33 @@ class Yireo_Vm2Mage_Model_Attribute_Api extends Mage_Api_Model_Resource_Abstract
         if(!is_array($data) || empty($data['name'])) {
             return array(0, "Attribute is not an array");
         }
-        
-        // Debugging
+        // @todo: Option to enable debugging
         //Mage::helper('vm2mage')->debug('VirtueMart attribute', $data);
-        
-        // Flags
-        $isNew = false;
-        $doSave = false;
-        if(Mage::getStoreConfig('vm2mage/settings/delete_attributes') == 1) $doSave = true;
 
-		// Convert the attribute-code
-		$attributeCode = $data['name'];
-		$attributeCode = Mage::helper('vm2mage/attribute')->convertAttributeCode($attributeCode);
+        // Quick filter for the attribute-name
+        $data['name'] = strtolower($data['name']);
+        
+        // Flag on whether to save this attribute
+        $do_save = false;
 
         // Get an attribute-object
         $product = Mage::getModel('catalog/product');
+        $attribute = Mage::getModel('catalog/entity_attribute');
         $attributes = Mage::getResourceModel('eav/entity_attribute_collection')
             ->setEntityTypeFilter($product->getResource()->getTypeId())
-            ->addFieldToFilter('attribute_code', $attributeCode)
+            ->addFieldToFilter('attribute_code', $data['name'])
             ->load(false);
-        $attribute = $attributes->getFirstItem();
-        $attribute->setEntity($product->getResource());
-
-        // Delete the attribute if it already exists
-        if($attribute->getId() > 0 && Mage::getStoreConfig('vm2mage/settings/delete_attributes') == 1) {
-            $model = Mage::getModel('catalog/resource_eav_attribute');
-            $model->load($attribute->getId());
-            try {
-                $model->delete();
-            } catch(Exception $e) {}
-
-            $attribute = $attributes->getFirstItem();
-            $attribute->setEntity($product->getResource());
-        }
-
-        // Unset the variables to make sure they don't interfer
+        $attribute = $attributes->getFirstItem()->setEntity($product->getResource());
         unset($product,$attributes);
 
         // Create a new attribute
         if(!$attribute->getId() > 0) {
-
-            $doSave = true;
-            $isNew = true;
-    
-            if(empty($data['values'])) {
-                $frontendInput = 'boolean';
-                $defaultValueYesNo = 1;
-                $backendModel = 'catalog/product_attribute_backend_boolean';
-                $sourceModel = 'eav/entity_attribute_source_boolean';
-            } else {
-                $frontendInput = 'select';
-                $defaultValueYesNo = 0;
-                $backendModel = 'eav/entity_attribute_backend_array';
-                $sourceModel = 'eav/entity_attribute_source_table';
-            }
-
-            $configurable = (!empty($data['configurable']) && $data['configurable'] == 1) ? 1 : 0;
-
+            $do_save = true;
             $attribute
-                ->setAttributeCode($attributeCode)
+                ->setAttributeCode($data['name'])
                 ->setEntityTypeId(Mage::getModel('eav/entity')->setType('catalog_product')->getTypeId())
                 ->setIsComparable(0)
-                ->setIsConfigurable($configurable)
+                ->setIsConfigurable(1)
                 ->setIsFilterable(0)
                 ->setIsFilterableInSearch(0)
                 ->setIsGlobal(1)
@@ -95,13 +60,11 @@ class Yireo_Vm2Mage_Model_Attribute_Api extends Mage_Api_Model_Resource_Abstract
                 ->setIsUsedForPriceRules(0)
                 ->setIsVisibleInAdvancedSearch(0)
                 ->setIsVisibleOnFront(0)
-                ->setDefaultValueYesno($defaultValueYesNo)
+                ->setDefaultValueYesno(0)
                 ->setUsedInProductListing(0)
-                ->setFrontendInput($frontendInput)
+                ->setFrontendInput('select')
                 ->setFrontendLabel(array($data['label'], $data['label']))
-                ->setBackendType($attribute->getBackendTypeByInput($frontendInput))
-                ->setBackendModel($backendModel)
-                ->setSourceModel($sourceModel)
+                ->setBackendType($attribute->getBackendTypeByInput('select'))
             ;
 
             // Add it to the default attribute-set and the first group
@@ -117,8 +80,8 @@ class Yireo_Vm2Mage_Model_Attribute_Api extends Mage_Api_Model_Resource_Abstract
             }
 
             // Add other data
-            $attribute->setData('apply_to', 0);
-            //$attribute->setData('apply_to', Mage_Catalog_Model_Product_Type::TYPE_SIMPLE);
+            $attribute->setData('backend_model', 'eav/entity_attribute_backend_array');
+            $attribute->setData('apply_to', Mage_Catalog_Model_Product_Type::TYPE_SIMPLE);
         }
 
         // Get the existing attribute-options
@@ -128,36 +91,29 @@ class Yireo_Vm2Mage_Model_Attribute_Api extends Mage_Api_Model_Resource_Abstract
         }
 
         // Strip these existing attribute-options from the incoming options
-        if(!empty($data['values'])) {
-            foreach($data['values'] as $index => $value) {
-                if(empty($value)) continue;
-                if(in_array($value, $existing_options)) unset($data['values'][$index]);
-            }
+        foreach($data['values'] as $index => $value) {
+            if(in_array($value, $existing_options)) unset($data['values'][$index]);
         }
 
         // Set the remaining attribute-options
         if(!empty($data['values'])) {
-            $doSave = true;
+            $do_save = true;
             $options = Mage::helper('vm2mage/attribute')->valueToOptions($data['values']);
             $attribute->setOption($options);
         }
 
         // Do not save anything if this is needed
-        if($doSave == false) {
-            return array(1, "No changes in '".$attributeCode."'");
+        if($do_save == false) {
+            return array(1, "No changes in '".$data['name']."'");
         }
 
         // Save the attribute
         try {
             $attribute->save();
         } catch(Exception $e) {
-            return array(0, '['.$attributeCode.'] '.$e->getMessage());
+            return array(0, $e->getMessage());
         }
 
-        if($isNew) {
-            return array(1, "Created attribute '".$attributeCode."'");
-        } else {
-            return array(1, "Updated attribute '".$attributeCode."'");
-        }
+        return array(1, "Successfully saved attribute '".$data['name']."'");
     }
 }
