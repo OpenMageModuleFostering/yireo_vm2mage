@@ -15,7 +15,8 @@ $installer->run("
 CREATE TABLE IF NOT EXISTS {$this->getTable('vm2mage_categories')} (
   `vm_id` int(11) NOT NULL,
   `mage_id` int(11) NOT NULL,
-  UNIQUE KEY `vm_id` (`vm_id`,`mage_id`)
+  `migration_code` varchar(32) NOT NULL,
+  UNIQUE KEY `vm_id` (`vm_id`,`mage_id`, `migration_code`)
 ) ENGINE=MyISAM;
 
 ");

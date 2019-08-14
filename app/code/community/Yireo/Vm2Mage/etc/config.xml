@@ -5,8 +5,8 @@
  *
  * @author Yireo
  * @package Vm2Mage
- * @copyright Copyright 2012
- * @license Yireo EULA (www.yireo.com)
+ * @copyright Copyright 2014
+ * @license Open Source License
  * @link http://www.yireo.com
  */
 -->
@@ -14,7 +14,7 @@
 
     <modules>
         <Yireo_Vm2Mage>
-            <version>0.10.0</version>
+            <version>0.10.21</version>
         </Yireo_Vm2Mage>
     </modules>
 
@@ -35,6 +35,11 @@
             <vm2mage>
                 <class>Yireo_Vm2Mage_Model</class>
             </vm2mage>
+            <catalog>
+                <rewrite>
+                    <category_attribute_backend_image>Yireo_Vm2Mage_Model_Rewrite_Category_Attribute_Backend_Image</category_attribute_backend_image>
+                </rewrite>
+            </catalog>
         </models>
 
         <resources>
@@ -129,4 +134,15 @@
         </routers>
     </admin>
 
+    <default>
+        <vm2mage>
+            <settings>
+                <debug_log>0</debug_log>
+                <local_images>1</local_images>
+                <renew_images>1</renew_images>
+                <renew_customers>1</renew_customers>
+                <delete_attributes>0</delete_attributes>
+            </settings>
+        </vm2mage>
+    </default>
 </config>

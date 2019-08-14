@@ -4,7 +4,7 @@
  *
  * @author Yireo
  * @package Vm2Mage
- * @copyright Copyright 2011
+ * @copyright Copyright 2014
  * @license Open Source License
  * @link http://www.yireo.com
  */
@@ -62,6 +62,11 @@ class Yireo_Vm2Mage_Helper_Data extends Mage_Core_Helper_Abstract
      */
     public function debug($string, $mixed = null)
     {
+        // Disable by setting
+        if(Mage::getStoreConfig('vm2mage/settings/debug_log') == 0) {
+            return false;
+        }
+
         // Construct the debug-string
         if($mixed) {
             $string .= ': '.var_export($mixed, true);
@@ -71,6 +76,25 @@ class Yireo_Vm2Mage_Helper_Data extends Mage_Core_Helper_Abstract
         if(@is_writable($logfile)) {
             @file_put_contents($logfile, $string."\n", FILE_APPEND);
         }
+    }
+
+    /*
+     * Helper-method to initialize debugging
+     *
+     * @param string $string
+     * @param mixed $mixed
+     * @return null
+     */
+    public function initDebug()
+    {
+        // Disable by setting
+        if(Mage::getStoreConfig('vm2mage/settings/debug_log') == 0) {
+            return false;
+        }
+
+        ini_set('display_errors', 1);
+        Mage::setIsDeveloperMode(true);
+        return true;
     }
 
     /*
@@ -84,6 +108,7 @@ class Yireo_Vm2Mage_Helper_Data extends Mage_Core_Helper_Abstract
             } elseif(!empty($value)) {
                 $value = base64_encode($value);
             }
+
             $array[$name] = $value;
         }
         return $array;
@@ -98,14 +123,27 @@ class Yireo_Vm2Mage_Helper_Data extends Mage_Core_Helper_Abstract
             if(is_array($value)) {
                 $value = Mage::helper('vm2mage')->decode($value);
             } elseif(!empty($value) && preg_match('/^V2M___/', $value)) {
-                $value = preg_replace('/^V2M___/', '', $value);
-                $value = base64_decode($value);
+                $value = Mage::helper('vm2mage')->decodeString($value);
             }
 
+            $name = Mage::helper('vm2mage')->decodeString($name);
             if(!empty($value)) {
                 $array[$name] = $value;
             }
         }
         return $array;
+    }
+
+    /*
+     * Recursive function to decode a value
+     */
+    public function decodeString($string = null)
+    {
+        if(!empty($string) && preg_match('/^V2M___/', $string)) {
+            $string = preg_replace('/^V2M___/', '', $string);
+            $string = base64_decode($string);
+        }
+
+        return $string;
     }
 }

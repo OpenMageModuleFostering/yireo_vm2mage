@@ -4,7 +4,7 @@
  *
  * @author Yireo
  * @package Vm2Mage
- * @copyright Copyright 2011
+ * @copyright Copyright 2014
  * @license Open Source License
  * @link http://www.yireo.com
  */
@@ -25,12 +25,25 @@ class Yireo_Vm2Mage_Helper_Attribute extends Yireo_Vm2Mage_Helper_Data
         $options = array('value' => array());
         $i = 1;
         foreach($values as $value) {
+            if(empty($value)) continue;
             $index = 'option_'.$i;
             $options['value'][$index] = array($value, $value);
             $i++;
         }
 
         return $options;
+    }
+    
+    /*
+     * Method to convert the attribute-code
+     *
+     * @param string $attributeCode
+     * @return string
+     */
+    public function convertAttributeCode($attributeCode = null)
+    {
+        $attributeCode = preg_replace('/([^a-zA-Z0-9\-\_]+)/', '_', $attributeCode);
+        return strtolower($attributeCode);
     }
 
     /*
@@ -42,6 +55,7 @@ class Yireo_Vm2Mage_Helper_Attribute extends Yireo_Vm2Mage_Helper_Data
      */
     public function getAttributeByCode($attributeCode = null)
     {
+		$attributeCode = Mage::helper('vm2mage/attribute')->convertAttributeCode($attributeCode);
         $attribute = Mage::getModel('eav/entity_attribute')->loadByCode('catalog_product',$attributeCode);
         return $attribute;
     }
@@ -54,20 +68,27 @@ class Yireo_Vm2Mage_Helper_Attribute extends Yireo_Vm2Mage_Helper_Data
      * @param string $attribute_value
      * @return Mage_Catalog_Model_Product`
      */
-    public function addAttributeToProduct($product = null, $attribute_code = null, $attribute_value = null)
+    public function addAttributeToProduct($product = null, $attributeCode = null, $attributeValue = null)
     {
-        $attribute = Mage::helper('vm2mage/attribute')->getAttributeByCode($attribute_code);
+		$attributeCode = Mage::helper('vm2mage/attribute')->convertAttributeCode($attributeCode);
+        $attribute = Mage::helper('vm2mage/attribute')->getAttributeByCode($attributeCode);
         if(empty($attribute)) {
             return $product;
         }
         
-        $options = $attribute->getSource()->getAllOptions();
+        try {
+			$options = $attribute->getSource()->getAllOptions();
+		} catch(Exception $e) {
+			Mage::helper('vm2mage')->debug('Error when loading product-options', $e->getMessage());
+			return $product;
+	    }
+	
         if(empty($options)) {
             return $product;
         }
     
         foreach($options as $option) {
-            if($option['label'] == $attribute_value) {
+            if($option['label'] == $attributeValue) {
                 $value = $option['value'];
                 break;
             }
@@ -77,12 +98,12 @@ class Yireo_Vm2Mage_Helper_Attribute extends Yireo_Vm2Mage_Helper_Data
             return $product;
         }
 
-        $method = Mage::helper('vm2mage')->stringToMethod($attribute_code);
+        $method = Mage::helper('vm2mage')->stringToMethod($attributeCode);
         if(!empty($method)) {
             try {
                 $product->$method($value);
             } catch(Exception $e) {
-                Mage::helper('vm2mage')->debug('Error when setting attribute "'.$attribute_code.'" on product "'.$product->getName().'"');
+                Mage::helper('vm2mage')->debug('Error when setting attribute "'.$attributeCode.'" on product "'.$product->getName().'"');
             }
         }
 

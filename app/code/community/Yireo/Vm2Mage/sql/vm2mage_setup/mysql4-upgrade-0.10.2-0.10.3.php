@@ -12,11 +12,6 @@
 $installer = $this;
 $installer->startSetup();
 $installer->run("
-CREATE TABLE IF NOT EXISTS {$this->getTable('vm2mage_categories')} (
-  `vm_id` int(11) NOT NULL,
-  `mage_id` int(11) NOT NULL,
-  UNIQUE KEY `vm_id` (`vm_id`,`mage_id`)
-) ENGINE=MyISAM;
-
+ALTER TABLE {$this->getTable('vm2mage_categories')} ADD  `migration_code` VARCHAR(32) NOT NULL AFTER `mage_id`;
 ");
 $installer->endSetup();

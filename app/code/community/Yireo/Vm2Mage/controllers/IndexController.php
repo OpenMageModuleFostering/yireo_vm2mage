@@ -4,7 +4,7 @@
  *
  * @author Yireo
  * @package Vm2Mage
- * @copyright Copyright 2011
+ * @copyright Copyright 2014
  * @license Open Source License
  * @link http://www.yireo.com
  */
@@ -46,5 +46,64 @@ class Yireo_Vm2Mage_IndexController extends Mage_Adminhtml_Controller_Action
         $this->_initAction()
             ->_addContent($this->getLayout()->createBlock('vm2mage/check'))
             ->renderLayout();
+    }
+
+    /**
+     * Delete all categories
+     *
+     * @access public
+     * @param null
+     * @return null
+     */
+    public function deleteCategoriesAction()
+    {
+        Mage::getSingleton('index/indexer')->lockIndexer();
+
+        $categories = Mage::getModel('catalog/category')->getCollection();
+        foreach($categories as $category) {
+            if($category->getParentId() == 0) continue;
+            if($category->getLevel() <= 1) continue;
+            $category->delete();
+        }
+
+        $resource = Mage::getSingleton('core/resource');
+        $writeConnection = $resource->getConnection('core_write');
+        $tableName = $resource->getTableName('vm2mage_categories');
+        $query = 'TRUNCATE TABLE '.$tableName;
+        $writeConnection->query($query);
+
+        Mage::getSingleton('index/indexer')->unlockIndexer();
+
+        Mage::getModel('adminhtml/session')->addSuccess('Categories deleted');
+        $url = Mage::getModel('adminhtml/url')->getUrl('vm2mage/index/index');
+        $this->getResponse()->setRedirect($url);
+    }
+
+    /**
+     * Delete all products
+     *
+     * @access public
+     * @param null
+     * @return null
+     */
+    public function deleteProductsAction()
+    {
+        Mage::getSingleton('index/indexer')->lockIndexer();
+
+        $products = Mage::getModel('catalog/product')->getCollection();
+        foreach($products as $product) {
+            $product->setIsMassupdate(true);
+            $product->setExcludeUrlRewrite(true);
+            $product->delete();
+        }
+
+        Mage::getSingleton('index/indexer')->unlockIndexer();
+
+        // @todo: Generate notice to reindex all indices
+        // @todo: Flush cache
+
+        Mage::getModel('adminhtml/session')->addSuccess('Products deleted');
+        $url = Mage::getModel('adminhtml/url')->getUrl('vm2mage/index/index');
+        $this->getResponse()->setRedirect($url);
     }
 }

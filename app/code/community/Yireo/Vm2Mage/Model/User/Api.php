@@ -4,7 +4,7 @@
  *
  * @author Yireo
  * @package Vm2Mage
- * @copyright Copyright 2011
+ * @copyright Copyright 2014
  * @license Open Source License
  * @link http://www.yireo.com
  */
@@ -19,6 +19,9 @@ class Yireo_Vm2Mage_Model_User_Api extends Mage_Customer_Model_Customer_Api
      */
     public function migrate($data = null)
     {
+        // Option to renew customers or not
+        $renewCustomers = (bool)Mage::getStoreConfig('vm2mage/settings/renew_customers');
+
         // Check for empty data
         if(!is_array($data)) {
             return array(0, "Data is not an array");
@@ -26,7 +29,7 @@ class Yireo_Vm2Mage_Model_User_Api extends Mage_Customer_Model_Customer_Api
 
         // Decode all values
         $data = Mage::helper('vm2mage')->decode($data);
-        #Mage::helper('vm2mage')->debug('VirtueMart user', $data);
+        //Mage::helper('vm2mage')->debug('VirtueMart user', $data);
 
         // Check for email
         if(empty($data['email'])) {
@@ -95,24 +98,28 @@ class Yireo_Vm2Mage_Model_User_Api extends Mage_Customer_Model_Customer_Api
             $customer->setPasswordHash($data['password']);
         }
 
-        // Try to safe this customer to the database
-        try {
-            $customer->save();
-        } catch(Exception $e) {
-            return array(0, $e->getMessage());
-        }
+        // Only save if allowed 
+        if($customerId < 1 || $renewCustomers == true) {
 
-        // Save the address
-        if(isset($data['addresses']) && !empty($data['addresses'])) {
-            foreach($data['addresses'] as $address) {
-                $rt = $this->saveAddress($customer, $address);
+            // Try to safe this customer to the database
+            try {
+                $customer->save();
+            } catch(Exception $e) {
+                return array(0, $e->getMessage());
             }
-        } else {
-            $rt = $this->saveAddress($customer, $data);
-        }
 
-        if(!empty($rt)) {
-            return $rt;
+            // Save the address
+            if(isset($data['addresses']) && !empty($data['addresses'])) {
+                foreach($data['addresses'] as $address) {
+                    $rt = $this->saveAddress($customer, $address, $data);
+                }
+            } else {
+                $rt = $this->saveAddress($customer, $data);
+            }
+
+            if(!empty($rt)) {
+                return $rt;
+            }
         }
 
         // Save the orders
@@ -139,7 +146,7 @@ class Yireo_Vm2Mage_Model_User_Api extends Mage_Customer_Model_Customer_Api
     /**
      * Save the customer address
      */
-    private function saveAddress($customer, $data)
+    private function saveAddress($customer, $data, $customerData)
     {
         // Load both addressses 
         $shippingAddress = $customer->getPrimaryShippingAddress();
@@ -154,7 +161,8 @@ class Yireo_Vm2Mage_Model_User_Api extends Mage_Customer_Model_Customer_Api
             $address = $billingAddress;
             $is_billing = true;
         }
-        #Mage::helper('vm2mage')->debug('Magento address', $address->debug());
+
+        Mage::helper('vm2mage')->debug('Magento address', $address->debug());
 
         // Some extra overrides
         $is_shipping = (empty($shippingAddress)) ? true : false;
@@ -177,11 +185,16 @@ class Yireo_Vm2Mage_Model_User_Api extends Mage_Customer_Model_Customer_Api
             return false;
         }
 
-        // Load the country and region
+        // Load the country
         $country = null;
-        $region = null;
+        if(empty($data['country']) && !empty($customerData['country'])) $data['country'] = $customerData['country'];
         if(!empty($data['country'])) $country = Mage::getModel('directory/country')->loadByCode($data['country']);
-        if(!empty($data['region'])) $region = Mage::getModel('directory/region')->loadByCode($data['state'], $country->getId());
+
+        // Load the region
+        $region = null;
+        if(empty($data['state']) && !empty($customerData['state'])) $data['state'] = $customerData['state'];
+        if(empty($data['state']) && !empty($customerData['region'])) $data['state'] = $customerData['region'];
+        if(!empty($data['state'])) $region = Mage::getModel('directory/region')->loadByCode($data['state'], $country->getId());
 
         // Set basic values
         $address
@@ -202,7 +215,6 @@ class Yireo_Vm2Mage_Model_User_Api extends Mage_Customer_Model_Customer_Api
             'fax' => 'fax',
             'city' => 'city',
             'zip' => 'postcode',
-            'state' => 'region',
             'country' => 'country',
             'taxvat' => 'vat_id',
         );
@@ -212,9 +224,16 @@ class Yireo_Vm2Mage_Model_User_Api extends Mage_Customer_Model_Customer_Api
             }
         }
 
-        // Load the country and region
-        if(!empty($country)) $address->setCountryId($country->getId());
-        if(!empty($region)) $address->setRegionId($region->getId());
+        // Set the country 
+        if(!empty($country)) {
+            $address->setCountryId($country->getId());
+        }
+
+        // Set the region
+        if(!empty($region)) {
+            $address->setRegionId($region->getId());
+            $address->setRegionName($region->getName());
+        }
 
         // Set the customer if needed
         if(!$address->getCustomerId() > 0) $address->setCustomerId($customer->getId());
@@ -255,30 +274,51 @@ class Yireo_Vm2Mage_Model_User_Api extends Mage_Customer_Model_Customer_Api
         if(empty($productId) || $productId == 0) {
             return null;
         }
+
+        // Detect if this review is already present
+        $collection = Mage::getModel('review/review')->getCollection()
+            ->addFieldToFilter('entity_id', Mage_Review_Model_Review::ENTITY_PRODUCT)
+            ->addFieldToFilter('entity_pk_value', $productId)
+            ->addFieldToFilter('customer_id', $customer->getId())
+        ;
+        if($collection->count() > 0) {
+            $review = $collection->getFirstItem();
+            $reviewId = $review->getId();
+        } else {
+            $reviewId = null;
+        }
         
         try {
             $nickname = $customer->getFirstname();
             if(empty($nickname)) $nickname = '-';
+            if(empty($data['user_rating'])) $data['user_rating'] = 4;
 
             $review = Mage::getModel('review/review');
-            $review->setEntityId(Mage_Review_Model_Review::ENTITY_PRODUCT);
-            $review->setEntityPkValue($productId);
-            $review->setCustomerId($customer->getId());
-            $review->setStoreId($customer->getStoreId());
-            $review->setStores(array($customer->getStoreId()));
+            if($reviewId > 0) {
+                $review->load($reviewId);
+            } else {
+                $review->setEntityId(Mage_Review_Model_Review::ENTITY_PRODUCT);
+                $review->setEntityPkValue($productId);
+                $review->setCustomerId($customer->getId());
+                $storeId = Mage::app()->getStore($customer->getStoreId())->getId();
+                $review->setStoreId($storeId);
+                $review->setStores(array($storeId));
+            }
+
             $review->setTitle('-');
             $review->setNickname($nickname);
             $review->setDetail($data['comment']);
-            // drop $data['user_rating']
+            $review->setRatingSummary($data['user_rating']);
 
             $review->setCreatedAt(date('Y-m-d H:i:s', $data['time']));
             if(strtolower($data['published']) == 'y') {
-                $review->setStatusId(1);
+                $review->setStatusId(Mage_Review_Model_Review::STATUS_APPROVED);
             } else {
-                $review->setStatusId(2);
+                $review->setStatusId(Mage_Review_Model_Review::STATUS_PENDING);
             }
 
             $rt = $review->save();
+            $review->aggregate();
 
         } catch(Exception $e) {
             Mage::helper('vm2mage')->debug('Exception', $e->getMessage());
@@ -313,12 +353,14 @@ class Yireo_Vm2Mage_Model_User_Api extends Mage_Customer_Model_Customer_Api
                 // Load the existing record
                 $model = Mage::getModel('vmorder/order')->load($order['order_id'], 'order_id');
                 $order_currency = (!empty($order['order_currency'])) ? $order['order_currency'] : $default_currency;
+                $order_status_name = (!empty($order['order_status_name'])) ? $order['order_status_name'] : $order['order_status'];
 
                 // Set all important values
                 $model->setCustomerId($customer_id);
                 $model->setOrderId($order['order_id']);
                 $model->setOrderNumber($order['order_number']);
                 $model->setOrderTotal($order['order_total']);
+                $model->setOrderSubtotal($order['order_subtotal']);
                 $model->setOrderCurrency($order_currency);
                 $model->setOrderTax($order['order_tax']);
                 $model->setOrderTaxDetails($order['order_tax_details']);
@@ -328,11 +370,11 @@ class Yireo_Vm2Mage_Model_User_Api extends Mage_Customer_Model_Customer_Api
                 $model->setOrderDiscount($order['order_discount']);
                 $model->setOrderStatusName($order['order_status_name']);
                 $model->setOrderStatus($order['order_status']);
-                $model->setCreateDate($order['cdate']);
-                $model->setModifyDate($order['mdate']);
-                $model->setShipMethodId($order['ship_method_id']);
+                $model->setCreateDate($order['create_date']);
+                $model->setModifyDate($order['modify_date']);
                 $model->setCustomerNote($order['customer_note']);
                 $model->setPaymentMethod($order['payment_method']);
+                if(isset($order['shipment_method'])) $model->setShipMethodId($order['shipment_method']);
                 $model->save(); // skipped: order_id, vendor_id, user_info_id, ip-address
 
                 // Loop through the order-items and save them as well
