@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <package>
     <name>Yireo_Vm2Mage</name>
-    <version>0.7.196</version>
+    <version>0.8.215</version>
     <stability>stable</stability>
     <channel>community</channel>
     <license uri="http://www.yireo.com/">Open Source License</license>
     <summary>See www.yireo.com/software for details</summary>
     <description>See www.yireo.com/software for details</description>
     <notes>See www.yireo.com/software for details</notes>
-    <date>2011-11-15</date>
+    <date>2012-08-31</date>
     <time>00:00:01</time>
     <authors>
         <author>

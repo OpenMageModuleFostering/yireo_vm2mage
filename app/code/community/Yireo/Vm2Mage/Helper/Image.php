@@ -144,7 +144,7 @@ class Yireo_Vm2Mage_Helper_Image extends Yireo_Vm2Mage_Helper_Data
 
         // Check the MD5 sum of this file
         if(!empty($md5sum) && md5_file($tmp_file) != $md5sum) {
-            Mage::helper('vm2mage')->debug('ERROR: Image does not match', $tmp_file);
+            Mage::helper('vm2mage')->debug('ERROR: image-download does not match MD5', $tmp_file);
             return false;
         }
 

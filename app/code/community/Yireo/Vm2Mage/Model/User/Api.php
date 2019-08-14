@@ -77,6 +77,9 @@ class Yireo_Vm2Mage_Model_User_Api extends Mage_Customer_Model_Customer_Api
             $customer->setTaxClassId(Mage::getModel('customer/group')->getTaxClassId($data['customer_group_id']));
         }
 
+        // Set the taxvat 
+        if(!empty($data['taxvat'])) $customer->setTaxvat($data['taxvat']);
+
         // Set the password (but only if it's a plain MD5-string)
         if(preg_match('/^([0-9a-fA-F]{32})$/', $data['password'])) {
             $hash = $data['password'].':';
@@ -129,52 +132,79 @@ class Yireo_Vm2Mage_Model_User_Api extends Mage_Customer_Model_Customer_Api
      */
     private function saveAddress($customer, $data)
     {
-        // Determine the address-type
+        // Load both addressses 
+        $shippingAddress = $customer->getPrimaryShippingAddress();
+        $billingAddress = $customer->getPrimaryBillingAddress();
+
+        // Determine the address-types
         if(isset($data['address_type']) && strtolower($data['address_type']) == 'st') {
-            $address = $customer->getPrimaryShippingAddress();
-            $shipping = true;
-            $billing = false;
+            $address = $shippingAddress;
+            $is_shipping = true;
+
         } else {
-            $address = $customer->getPrimaryBillingAddress();
-            $shipping = false;
-            $billing = true;
+            $address = $billingAddress;
+            $is_billing = true;
         }
+        //Mage::helper('vm2mage')->debug('Magento address', $address->debug());
+
+        // Some extra overrides
+        $is_shipping = (empty($shippingAddress)) ? true : false;
+        $is_billing = (empty($billingAddress)) ? true : false;
+        $is_billing = true;
+        $is_shipping = true;
 
         // Load the address
         if(empty($address)) {
             $address = Mage::getModel('customer/address');
         }
 
+        // Compile the street
+        $street = trim($data['address_1']);
+        if(!empty($data['address_2'])) $street .= "\n".$data['address_2'];
+
+        // Load the country and region
+        $country = Mage::getModel('directory/country')->loadByCode($data['country']);
+        $region = Mage::getModel('directory/region')->loadByCode($data['state'], $country->getId());
+
         // Set all needed values
         $address
-            ->setIsPrimaryBilling($billing)
-            ->setIsPrimaryShipping($shipping)
+            ->setIsPrimaryBilling($is_billing)
+            ->setIsPrimaryShipping($is_shipping)
+            ->setIsDefaultBilling($is_billing)
+            ->setIsDefaultShipping($is_shipping)
             ->setTelephone($data['phone_1'])
             ->setFirstname($data['first_name'])
             ->setMiddlename($data['middle_name'])
             ->setLastname($data['last_name'])
             ->setCompany($data['company'])
             ->setFax($data['fax'])
-            ->setStreet($data['address_1']."\n".$data['address_2'])
+            ->setStreet($street)
             ->setCity($data['city'])
             ->setPostcode($data['zip'])
             ->setRegion($data['state'])
-            ->setCountryId($data['country'])
+            ->setCountry($data['country'])
         ;
 
+        // Load the taxvat if available
+        if(!empty($data['taxvat'])) $address->setVatId($data['taxvat']);
+
         // Load the country and region
-        $country = Mage::getModel('directory/country')->loadByCode($data['country']);
-        $region = Mage::getModel('directory/region')->loadByCode($data['state'], $country->getId());
-        if(!empty($region)) {
-            $address->setRegionId($region->getId());
-        }
+        if(!empty($country)) $address->setCountryId($country->getId());
+        if(!empty($region)) $address->setRegionId($region->getId());
 
-        if(!$address->getCustomerId() > 0) {
-            $customer->addAddress($address);
-        }
+        // Set the customer if needed
+        if(!$address->getCustomerId() > 0) $address->setCustomerId($customer->getId());
 
+        // Save the address
         try {
-            $customer->save();
+            if($address->getId() > 0) {
+                $address->save();
+            } else {
+                $address->save();
+                $customer->addAddress($address);
+                $customer->save();
+            }
+
         } catch(Exception $e) {
             Mage::helper('vm2mage')->debug('Exception', $e->getMessage());
             return array(0, $e->getMessage());

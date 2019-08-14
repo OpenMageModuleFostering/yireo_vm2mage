@@ -65,6 +65,11 @@ class Yireo_Vm2Mage_Model_Product_Api extends Mage_Catalog_Model_Product_Api
             }
         }
 
+        // Make sure there is a short-description
+        if(empty($data['short_description'])) {
+            $data['short_description'] = $data['name'];
+        }
+
         // Set common attributes
         $product->setData($product->getData())
             ->setStoreId($storeId)
@@ -119,14 +124,14 @@ class Yireo_Vm2Mage_Model_Product_Api extends Mage_Catalog_Model_Product_Api
         }
 
         // Handle the stock
-        $stockItem = Mage::getModel('cataloginventory/stock_item')->loadByProduct($product->getId());
-        $stockData = ($stockItem->getId() > 0) ? $stockItem->getData() : array();
         if(isset($data['in_stock']) && $data['in_stock'] > 0) {
+            $stockData = $product->getStockData();
+            Mage::helper('vm2mage')->debug('VirtueMart product stock-data', $stockData);
             $stockData['qty'] = $data['in_stock'];
             $stockData['is_in_stock'] = 1;
             $stockData['manage_stock'] = 1;
-            $stockItem->setData($stockData);
-            $product->setStockItem($stockItem); 
+            $stockData['use_config_manage_stock'] = 0;
+            $product->setStockData($stockData);
         }
 
         // Convert the category-IDs

@@ -5,7 +5,7 @@
  *
  * @author Yireo
  * @package Vm2Mage
- * @copyright Copyright 2011
+ * @copyright Copyright 2012
  * @license Yireo EULA (www.yireo.com)
  * @link http://www.yireo.com
  */
@@ -14,7 +14,7 @@
 
     <modules>
         <Yireo_Vm2Mage>
-            <version>0.7.196</version>
+            <version>0.8.215</version>
         </Yireo_Vm2Mage>
     </modules>
 

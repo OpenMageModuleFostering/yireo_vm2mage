@@ -51,7 +51,7 @@ class Yireo_Vm2Mage_Model_Category_Api extends Mage_Catalog_Model_Category_Api
         }
 
         // Take the parent from Magento
-        $storeId = (isset($data['store_id'])) ? $data['store_id'] : 0;
+        $storeId = (isset($data['store_id'])) ? (int)$data['store_id'] : 0;
         if($parentId == 0 && !empty($storeId)) {
             $parentId = Mage::app()->getStore($storeId)->getRootCategoryId();
         }
