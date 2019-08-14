@@ -182,4 +182,58 @@ class Yireo_Vm2Mage_Block_Check extends Mage_Core_Block_Template
 
         return $this->system_checks;
     }
+
+    /*
+     * Helper to return the URL for deleting all categories
+     *
+     * @access public
+     * @param null
+     * @return string
+     */
+    public function getDeleteCategoriesUrl()
+    {
+        return Mage::getModel('adminhtml/url')->getUrl('vm2mage/index/deleteCategories');
+    }
+
+    /*
+     * Helper to return the URL for deleting all products
+     *
+     * @access public
+     * @param null
+     * @return string
+     */
+    public function getDeleteProductsUrl()
+    {
+        return Mage::getModel('adminhtml/url')->getUrl('vm2mage/index/deleteProducts');
+    }
+
+    /**
+     * Render block HTML
+     *
+     * @access protected
+     * @param null
+     * @return mixed
+     */
+    protected function _toHtml()
+    {
+        $this->setChild('products_delete_button',
+            $this->getLayout()->createBlock('adminhtml/widget_button')
+                ->setData(array(
+                    'label' => Mage::helper('catalog')->__('Delete All Products'),
+                    'onclick' => 'window.location = \''.$this->getDeleteProductsUrl().'\'',
+                    'class' => 'delete'
+                ))
+        );
+
+        $this->setChild('categories_delete_button',
+            $this->getLayout()->createBlock('adminhtml/widget_button')
+                ->setData(array(
+                    'label' => Mage::helper('catalog')->__('Delete All Categories'),
+                    'onclick' => 'window.location = \''.$this->getDeleteCategoriesUrl().'\'',
+                    'class' => 'delete'
+                ))
+        );
+
+        return parent::_toHtml();
+    }
 }

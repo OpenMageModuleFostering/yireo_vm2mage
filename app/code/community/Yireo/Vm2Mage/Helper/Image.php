@@ -59,11 +59,11 @@ class Yireo_Vm2Mage_Helper_Image extends Yireo_Vm2Mage_Helper_Data
 
         // Renew images
         if($renewImages) {
-            Mage::helper('vm2mage')->debug('NOTICE: Removing existing images');
 
             // Check whether the images are already there
             $galleryImages = $product->getMediaGalleryImages();
-            if(is_object($galleryImages) && $galleryImages->count() >= count($images)) {
+            if(is_object($galleryImages) && $galleryImages->count() > 0) {
+                Mage::helper('vm2mage')->debug('NOTICE: Removing existing images');
                 $entityTypeId = Mage::getModel('eav/entity')->setType('catalog_product')->getTypeId();
                 $mediaGalleryAttribute = Mage::getModel('catalog/resource_eav_attribute')->loadByCode($entityTypeId, 'media_gallery');
                 foreach ($galleryImages as $galleryImage) {
@@ -73,9 +73,11 @@ class Yireo_Vm2Mage_Helper_Image extends Yireo_Vm2Mage_Helper_Data
             }
 
             // Loop through the images and create them
+            $migratedFiles = array();
             if(is_array($images) && !empty($images)) {
                 foreach($images as $image) {
 
+                    if(in_array($image['md5sum'], $migratedFiles)) continue;
                     if(empty($image['label'])) $image['label'] = $product->getName();
                     if(empty($image['file'])) $image['file'] = null;
                     if(empty($image['md5sum'])) $image['md5sum'] = null;
@@ -92,14 +94,19 @@ class Yireo_Vm2Mage_Helper_Image extends Yireo_Vm2Mage_Helper_Data
                     $result = self::addLocalImage($product, $image['file'], $image['label'], $imageTypes);
                     if($result != false) {
                         $product = $result;
+                        $migratedFiles[] = $image['md5sum'];
                     } else {
                         $result = self::addRemoteImage($product, $image['url'], $image['md5sum'], $image['type'], $image['label'], $imageTypes);
                         if($result != false) {
                             $product = $result;
+                            $migratedFiles[] = $image['md5sum'];
                         }
                     }
                 }
             }
+
+            // Save the product
+            $product->save();
         }
 
         return $product;
@@ -129,7 +136,8 @@ class Yireo_Vm2Mage_Helper_Image extends Yireo_Vm2Mage_Helper_Data
         }
 
         // Create a temporary file
-        $tmp_file = $base_dir.DS.basename($url);
+        $tmp_basename = md5($product->getId().$url).'.'.preg_replace('/(.*)\.(gif|jpg|jpeg|png)/', '\2', strtolower($url));
+        $tmp_file = $base_dir.DS.$tmp_basename;
 
         // Get the remote image 
         $tmp_content = self::getRemoteContent($url);
@@ -142,6 +150,12 @@ class Yireo_Vm2Mage_Helper_Image extends Yireo_Vm2Mage_Helper_Data
         // Write it to the temporary file
         file_put_contents($tmp_file, $tmp_content);
 
+        // Check whether the new file exists
+        if(file_exists($tmp_file) == false) {
+            Mage::helper('vm2mage')->debug('ERROR: Copy new image to image-folder succeeded, but still not image', $tmp_file);
+            return false;
+        }
+
         // Check the MD5 sum of this file
         if(!empty($md5sum) && md5_file($tmp_file) != $md5sum) {
             Mage::helper('vm2mage')->debug('ERROR: image-download does not match MD5', $tmp_file);
@@ -149,11 +163,11 @@ class Yireo_Vm2Mage_Helper_Image extends Yireo_Vm2Mage_Helper_Data
         }
 
         // Add the image to the gallery
-        $product = $product->addImageToMediaGallery($tmp_file, $types, true, false);
+        $product = $product->addImageToMediaGallery($tmp_file, $types, false, false);
 
         // Clean temporary file if needed
         if(file_exists($tmp_file)) {
-            unlink($tmp_file);
+            @unlink($tmp_file);
         }
 
         // Return the changed product-object
@@ -195,21 +209,33 @@ class Yireo_Vm2Mage_Helper_Image extends Yireo_Vm2Mage_Helper_Data
             return false;
         }
 
-        // Create a temporary file
-        $tmp_file = $base_dir.DS.basename($file);
+        // Check for empty images
+        if(filesize($file) == 0) {
+            Mage::helper('vm2mage')->debug('ERROR: Source-image has a size of 0', $file);
+            return false;
+        }
 
         // Get the remote image and write it to the temporary file
+        $tmp_basename = md5($product->getId().$file).'.'.preg_replace('/(.*)\.(gif|jpg|jpeg|png)/', '\2', strtolower($file));
+        $tmp_file = $base_dir.DS.$tmp_basename;
         if(@copy($file, $tmp_file) == false) {
             Mage::helper('vm2mage')->debug('ERROR: Copy new image to image-folder failed', $base_dir);
             return false;
         }
 
+        // Check whether the new file exists
+        if(file_exists($tmp_file) == false) {
+            Mage::helper('vm2mage')->debug('ERROR: Copy new image to image-folder succeeded, but still not image', $tmp_file);
+            return false;
+        }
+
         // Add the image to the gallery
-        $product = $product->addImageToMediaGallery($tmp_file, $types, true, false);
+        Mage::helper('vm2mage')->debug('NOTICE: ['.$product->getSku().'] Adding new image', $tmp_file);
+        $product = $product->addImageToMediaGallery($tmp_file, $types, false, false);
 
         // Clean temporary file if needed
         if(file_exists($tmp_file)) {
-            unlink($tmp_file);
+            @unlink($tmp_file);
         }
 
         // Return the changed product-object

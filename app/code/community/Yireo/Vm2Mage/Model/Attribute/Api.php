@@ -25,7 +25,7 @@ class Yireo_Vm2Mage_Model_Attribute_Api extends Mage_Api_Model_Resource_Abstract
         }
         
         // Debugging
-        Mage::helper('vm2mage')->debug('VirtueMart attribute', $data);
+        //Mage::helper('vm2mage')->debug('VirtueMart attribute', $data);
         
         // Flags
         $isNew = false;

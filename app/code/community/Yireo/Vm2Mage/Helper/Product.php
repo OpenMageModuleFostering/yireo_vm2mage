@@ -26,10 +26,13 @@ class Yireo_Vm2Mage_Helper_Product extends Yireo_Vm2Mage_Helper_Data
         $childIds = array();
         foreach($children as $child) {
             $childId = Mage::getModel('catalog/product')->getIdBySku($child['sku']);
-            if(empty($childId)) {
+
+            // @todo: Should we re-migrate the product or not?
+            //if(empty($childId)) {
+                if(empty($child['price']['product_price'])) $child['price']['product_price'] = $product->getPrice();
                 Mage::getModel('vm2mage/product_api')->migrate($child);
                 $childId = Mage::getModel('catalog/product')->getIdBySku($child['sku']);
-            }
+            //}
             $childIds[] = $childId;
         }
 
@@ -103,10 +106,13 @@ class Yireo_Vm2Mage_Helper_Product extends Yireo_Vm2Mage_Helper_Data
         $childIds = array();
         foreach($children as $child) {
             $childId = Mage::getModel('catalog/product')->getIdBySku($child['sku']);
-            if(empty($childId)) {
+
+            // @todo: Should we re-migrate the product or not?
+            //if(empty($childId)) {
+                if(empty($child['price']['product_price'])) $child['price']['product_price'] = $product->getPrice();
                 Mage::getModel('vm2mage/product_api')->migrate($child);
                 $childId = Mage::getModel('catalog/product')->getIdBySku($child['sku']);
-            }
+            //}
             $childIds[] = $childId;
         }
 
@@ -146,6 +152,43 @@ class Yireo_Vm2Mage_Helper_Product extends Yireo_Vm2Mage_Helper_Data
 
         if(!empty($relatedProductsData)) {
             $product->setRelatedLinkData($relatedProductsData);
+        }
+
+        return $product;
+    }
+
+    /*
+     * Helper-method to add custom options to a product
+     *
+     * @param Mage_Catalog_Model_Product $product
+     * @param string $name
+     * @param array $values
+     * @return $product
+     */
+    public function addCustomOptionsToProduct($product, $name, $values)
+    {
+        $option = array(
+            'title' => $name,
+            'type' => 'drop_down',
+            'is_require' => 1,
+            'sort_order' => 0,
+            'values' => array(),
+        );
+
+        foreach($values as $value) {
+            if(!isset($value['price'])) $value['price'] = null;
+            $option['values'][] = array(
+                'title' => $value['label'],
+                'price' => $value['price'],
+                'price_type' => 'fixed',
+                'sku' => '',
+                'sort_order' => '1'
+            );
+        }
+
+        if(!$product->getOptionsReadonly()) {
+            $product->setProductOptions(array($option));
+            $product->setCanSaveCustomOptions(true);
         }
 
         return $product;
