@@ -19,6 +19,8 @@ class Yireo_Vm2Mage_Model_Category_Api extends Mage_Catalog_Model_Category_Api
      */
     public function migrate($data= null)
     {
+        Mage::helper('vm2mage')->init();
+
         // Check for empty data
         if(!is_array($data)) {
             return array(0, "Data is not an array");

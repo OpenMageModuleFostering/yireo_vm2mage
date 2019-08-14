@@ -176,6 +176,10 @@ class Yireo_Vm2Mage_Helper_Product extends Yireo_Vm2Mage_Helper_Data
      */
     public function addCustomOptionToProduct($product, $custom_option)
     {
+        if (!isset($custom_option['name'])) {
+            return $product;
+        }
+
         $name = $custom_option['name'];
         $values = $custom_option['values'];
         $ordering = $custom_option['ordering'];

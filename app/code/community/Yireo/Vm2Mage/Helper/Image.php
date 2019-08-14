@@ -78,6 +78,8 @@ class Yireo_Vm2Mage_Helper_Image extends Yireo_Vm2Mage_Helper_Data
         $hasThumbImage = false;
         if(is_array($images) && !empty($images)) {
             foreach($images as $image) {
+                if(empty($image['type'])) $image['type'] = null;
+
                 if($image['type'] == 'full_image') $hasFullImage = true;
                 if($image['type'] == 'thumbnail') $hasThumbImage = true;
             }

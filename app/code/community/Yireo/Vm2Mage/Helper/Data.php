@@ -79,11 +79,18 @@ class Yireo_Vm2Mage_Helper_Data extends Mage_Core_Helper_Abstract
     }
 
     /*
+     * Helper-method to initialize settings
+     */
+    public function init()
+    {
+        ini_set('display_errors', 1);
+        error_reporting(E_ALL & ~E_NOTICE);
+    }
+
+    /*
      * Helper-method to initialize debugging
      *
-     * @param string $string
-     * @param mixed $mixed
-     * @return null
+     * @return boolean
      */
     public function initDebug()
     {
@@ -92,7 +99,6 @@ class Yireo_Vm2Mage_Helper_Data extends Mage_Core_Helper_Abstract
             return false;
         }
 
-        ini_set('display_errors', 1);
         Mage::setIsDeveloperMode(true);
         return true;
     }
@@ -105,7 +111,7 @@ class Yireo_Vm2Mage_Helper_Data extends Mage_Core_Helper_Abstract
         foreach($array as $name => $value) {
             if(is_array($value)) {
                 $value = Mage::helper('vm2mage')->encode($value);
-            } elseif(!empty($value)) {
+            } elseif(!empty($value) && !is_numeric($value)) {
                 $value = base64_encode($value);
             }
 

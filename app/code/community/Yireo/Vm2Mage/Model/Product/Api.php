@@ -19,6 +19,8 @@ class Yireo_Vm2Mage_Model_Product_Api extends Mage_Catalog_Model_Product_Api
      */
     public function migrate($data = null)
     {
+        Mage::helper('vm2mage')->init();
+
         // Check for empty data
         if(!is_array($data)) {
             //Mage::helper('vm2mage')->debug('VirtueMart product', $data);
@@ -30,16 +32,16 @@ class Yireo_Vm2Mage_Model_Product_Api extends Mage_Catalog_Model_Product_Api
         //Mage::helper('vm2mage')->debug('VirtueMart product', $data);
 
         // Determine the product-type
-        if($data['has_children'] > 0 && !empty($data['attributes_sku'])) {
+        if(isset($data['has_children']) && $data['has_children'] > 0 && !empty($data['attributes_sku'])) {
             $typeId = Mage_Catalog_Model_Product_Type::TYPE_CONFIGURABLE;
-        } elseif($data['has_children'] > 0) {
+        } elseif(isset($data['has_children']) && $data['has_children'] > 0) {
             $typeId = Mage_Catalog_Model_Product_Type::TYPE_GROUPED;
         } else {
             $typeId = Mage_Catalog_Model_Product_Type::TYPE_SIMPLE;
         }
 
         // Determine the children of this product already exist
-        if($data['has_children'] > 0) {
+        if(isset($data['has_children']) && $data['has_children'] > 0) {
             foreach($data['children'] as $child) {
                 $childId = Mage::getModel('catalog/product')->getIdBySku($child['sku']);
                 if($childId > 0) {
@@ -178,6 +180,7 @@ class Yireo_Vm2Mage_Model_Product_Api extends Mage_Catalog_Model_Product_Api
             $tierPrices = array();
             foreach($data['all_prices'] as $price) {
 
+                if(!isset($price['price_quantity_start'])) continue;
                 if($price['price_quantity_start'] < 1) continue;
                 if($price['price_quantity_end'] < 1) continue;
                 
@@ -200,19 +203,8 @@ class Yireo_Vm2Mage_Model_Product_Api extends Mage_Catalog_Model_Product_Api
         }
 
         // Handle the stock
-        if($typeId == Mage_Catalog_Model_Product_Type::TYPE_GROUPED) $data['in_stock'] = null;
-        if(!empty($data['in_stock']) && $data['in_stock'] > 0) {
-            $stockData = $product->getStockData();
-            //Mage::helper('vm2mage')->debug('VirtueMart product stock-data', $stockData);
-            $stockData['qty'] = $data['in_stock'];
-            $stockData['is_in_stock'] = 1;
-            $stockData['manage_stock'] = 1;
-            $stockData['use_config_manage_stock'] = 0;
-            $product->setStockData($stockData);
-        } else {
-            $stockData = $product->getStockData();
-            $stockData['manage_stock'] = 0;
-            $product->setStockData($stockData);
+        if($typeId == Mage_Catalog_Model_Product_Type::TYPE_GROUPED) {
+            $data['in_stock'] = null;
         }
 
         // Convert the category-IDs
@@ -256,6 +248,26 @@ class Yireo_Vm2Mage_Model_Product_Api extends Mage_Catalog_Model_Product_Api
         } catch(Exception $e) {
             return array(0, '['.$sku.'] '.$e->getMessage());
         }
+
+        // Set the stock
+        $stockItem = Mage::getModel('cataloginventory/stock_item')->loadByProduct($product);
+        if(!empty($data['in_stock']) && $data['in_stock'] > 0) {
+            $stockItem->setData('qty', (int) $data['in_stock']);
+            $stockItem->setData('is_in_stock', 1);
+            $stockItem->setData('manage_stock', 1);
+            $stockItem->setData('use_config_manage_stock', 0);
+        } else {
+            $stockItem->setData('manage_stock', 0);
+            $stockItem->setData('use_config_manage_stock', 0);
+        }
+
+        if(!$stockItem->getId() > 0) {
+            $stockItem->setData('stock_id', 1);
+            $stockItem->setData('product_id', $product->getId());
+        }
+
+        $stockItem->save();
+        $product->save();
 
         // Set the Custom Options
         if(isset($data['custom_options']) || isset($data['custom_option'])) {

@@ -19,6 +19,8 @@ class Yireo_Vm2Mage_Model_User_Api extends Mage_Customer_Model_Customer_Api
      */
     public function migrate($data = null)
     {
+        Mage::helper('vm2mage')->init();
+
         // Option to renew customers or not
         $renewCustomers = (bool)Mage::getStoreConfig('vm2mage/settings/renew_customers');
 
@@ -110,11 +112,27 @@ class Yireo_Vm2Mage_Model_User_Api extends Mage_Customer_Model_Customer_Api
 
             // Save the address
             if(isset($data['addresses']) && !empty($data['addresses'])) {
+
+                // Detect whether there is both a billing-address and a shipping-address
+                $hasBilling = false;
+                $hasShipping = false;
                 foreach($data['addresses'] as $address) {
-                    $rt = $this->saveAddress($customer, $address, $data);
+                    if(isset($address['address_type']) && strtolower($address['address_type']) == 'bt') {
+                        $hasBilling = true;
+                    }
+                    if(isset($address['address_type']) && strtolower($address['address_type']) == 'st') {
+                        $hasShipping = true;
+                    }
                 }
+
+                // Save the addresses
+                foreach($data['addresses'] as $address) {
+                    $rt = $this->saveAddress($customer, $address, $data, $hasBilling, $hasShipping);
+                }
+
+            // Save this single address
             } else {
-                $rt = $this->saveAddress($customer, $data);
+                $rt = $this->saveAddress($customer, $data, array(), true, true);
             }
 
             if(!empty($rt)) {
@@ -146,29 +164,31 @@ class Yireo_Vm2Mage_Model_User_Api extends Mage_Customer_Model_Customer_Api
     /**
      * Save the customer address
      */
-    private function saveAddress($customer, $data, $customerData)
+    private function saveAddress($customer, $data, $customerData, $hasBilling, $hasShipping)
     {
         // Load both addressses 
         $shippingAddress = $customer->getPrimaryShippingAddress();
         $billingAddress = $customer->getPrimaryBillingAddress();
+
+        // Defaults
+        $is_shipping = ($hasShipping) ? false : true;
+        $is_billing = ($hasBilling) ? false : true;
 
         // Determine the address-types
         if(isset($data['address_type']) && strtolower($data['address_type']) == 'st') {
             $address = $shippingAddress;
             $is_shipping = true;
 
-        } else {
+        } elseif(isset($data['address_type']) && strtolower($data['address_type']) == 'bt') {
             $address = $billingAddress;
             $is_billing = true;
         }
 
-        Mage::helper('vm2mage')->debug('Magento address', $address->debug());
+        if(!is_object($address)) {
+            $address = Mage::getModel('customer/address');
+        }
 
-        // Some extra overrides
-        $is_shipping = (empty($shippingAddress)) ? true : false;
-        $is_billing = (empty($billingAddress)) ? true : false;
-        $is_billing = true;
-        $is_shipping = true;
+        //Mage::helper('vm2mage')->debug('Magento address', $address->debug());
 
         // Load the address
         if(empty($address)) {

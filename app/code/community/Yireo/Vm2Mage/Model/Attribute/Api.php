@@ -19,6 +19,8 @@ class Yireo_Vm2Mage_Model_Attribute_Api extends Mage_Api_Model_Resource_Abstract
      */
     public function initialize($data = null)
     {
+        Mage::helper('vm2mage')->init();
+
         // Check for empty data
         if(!is_array($data) || empty($data['name'])) {
             return array(0, "Attribute is not an array");
