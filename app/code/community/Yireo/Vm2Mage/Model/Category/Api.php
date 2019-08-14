@@ -4,7 +4,7 @@
  *
  * @author Yireo
  * @package Vm2Mage
- * @copyright Copyright 2014
+ * @copyright Copyright 2013
  * @license Open Source License
  * @link http://www.yireo.com
  */
@@ -19,8 +19,6 @@ class Yireo_Vm2Mage_Model_Category_Api extends Mage_Catalog_Model_Category_Api
      */
     public function migrate($data= null)
     {
-        Mage::helper('vm2mage')->init();
-
         // Check for empty data
         if(!is_array($data)) {
             return array(0, "Data is not an array");
@@ -45,9 +43,10 @@ class Yireo_Vm2Mage_Model_Category_Api extends Mage_Catalog_Model_Category_Api
         // Get the parent by taking it from VirtueMart
         if(isset($data['parent_id']) && $data['parent_id'] > 0) {
             $parentId = Mage::helper('vm2mage/category')->getMageId($data['parent_id'], $data['migration_code']);
-            $parentCategory = Mage::getModel('catalog/category')->load($parentId);
-            if(!$parentCategory->getId() > 0) {
-                Mage::helper('vm2mage/category')->removeRelation($data['parent_id'], $data['migration_code']);
+
+            // Do not migrate this category (yet) if its parent does not exist yet
+            if(!$parentId > 0) {
+                return array(0, "Parent category ".$data['parent_id']." does not yet exist");
             }
         }
 
@@ -64,10 +63,6 @@ class Yireo_Vm2Mage_Model_Category_Api extends Mage_Catalog_Model_Category_Api
 
         // Load the parent category
         $parentCategory = Mage::getModel('catalog/category')->load($parentId);
-        if($parentCategory->getId() == 0) {
-            $parentId = Mage::app()->getAnyStoreView()->getRootCategoryId();
-            $parentCategory = Mage::getModel('catalog/category')->load($parentId);
-        }
 
         // Detect whether this is a new category or not
         if(!$category->getName()) {
@@ -84,11 +79,6 @@ class Yireo_Vm2Mage_Model_Category_Api extends Mage_Catalog_Model_Category_Api
 
         } else {
             $isNew = false;
-            $category->setData($category->getData())
-                ->setParentId($parentId)
-                ->setLevel($parentCategory->getLevel() + 1)
-                ->setPath($parentCategory->getPath().'/'.$category->getId())
-            ;
         }
 
         $state = (isset($data['status'])) ? $data['status'] : $data['published'];
@@ -100,19 +90,6 @@ class Yireo_Vm2Mage_Model_Category_Api extends Mage_Catalog_Model_Category_Api
             ->setIsActive($state)
         ;
 
-        // Assign all the products properly to this category
-        if(!empty($data['products'])) {
-            $positions = $category->getProductsPosition();
-            $product = Mage::getModel('catalog/product');
-            foreach($data['products'] as $productData) {
-                $productSku = $productData['sku'];
-                $productOrdering = $productData['ordering'];
-                $productId = (int)$product->getIdBySku($productSku); 
-                if($productId > 0) $positions[$productId] = $productOrdering;
-            }
-            $category->setPostedProducts($positions);
-        }
-
         // @todo: Get the remote images
 
         // Try to safe this category to the database
@@ -122,7 +99,7 @@ class Yireo_Vm2Mage_Model_Category_Api extends Mage_Catalog_Model_Category_Api
             return array(0, $e->getMessage());
         }
 
-        // Move this category
+        // Move this categort
         if(!in_array($parentId, array(0, $category->getParentId(), $category->getId()))) {
             try {
                 $category->move($category->getId(), $parentId);

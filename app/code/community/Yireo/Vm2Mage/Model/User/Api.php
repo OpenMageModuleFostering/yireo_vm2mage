@@ -4,7 +4,7 @@
  *
  * @author Yireo
  * @package Vm2Mage
- * @copyright Copyright 2014
+ * @copyright Copyright 2013
  * @license Open Source License
  * @link http://www.yireo.com
  */
@@ -19,11 +19,6 @@ class Yireo_Vm2Mage_Model_User_Api extends Mage_Customer_Model_Customer_Api
      */
     public function migrate($data = null)
     {
-        Mage::helper('vm2mage')->init();
-
-        // Option to renew customers or not
-        $renewCustomers = (bool)Mage::getStoreConfig('vm2mage/settings/renew_customers');
-
         // Check for empty data
         if(!is_array($data)) {
             return array(0, "Data is not an array");
@@ -31,7 +26,7 @@ class Yireo_Vm2Mage_Model_User_Api extends Mage_Customer_Model_Customer_Api
 
         // Decode all values
         $data = Mage::helper('vm2mage')->decode($data);
-        //Mage::helper('vm2mage')->debug('VirtueMart user', $data);
+        #Mage::helper('vm2mage')->debug('VirtueMart user', $data);
 
         // Check for email
         if(empty($data['email'])) {
@@ -100,44 +95,24 @@ class Yireo_Vm2Mage_Model_User_Api extends Mage_Customer_Model_Customer_Api
             $customer->setPasswordHash($data['password']);
         }
 
-        // Only save if allowed 
-        if($customerId < 1 || $renewCustomers == true) {
+        // Try to safe this customer to the database
+        try {
+            $customer->save();
+        } catch(Exception $e) {
+            return array(0, $e->getMessage());
+        }
 
-            // Try to safe this customer to the database
-            try {
-                $customer->save();
-            } catch(Exception $e) {
-                return array(0, $e->getMessage());
+        // Save the address
+        if(isset($data['addresses']) && !empty($data['addresses'])) {
+            foreach($data['addresses'] as $address) {
+                $rt = $this->saveAddress($customer, $address, $data);
             }
+        } else {
+            $rt = $this->saveAddress($customer, $data);
+        }
 
-            // Save the address
-            if(isset($data['addresses']) && !empty($data['addresses'])) {
-
-                // Detect whether there is both a billing-address and a shipping-address
-                $hasBilling = false;
-                $hasShipping = false;
-                foreach($data['addresses'] as $address) {
-                    if(isset($address['address_type']) && strtolower($address['address_type']) == 'bt') {
-                        $hasBilling = true;
-                    }
-                    if(isset($address['address_type']) && strtolower($address['address_type']) == 'st') {
-                        $hasShipping = true;
-                    }
-                }
-
-                // Save the addresses
-                foreach($data['addresses'] as $address) {
-                    $rt = $this->saveAddress($customer, $address, $data, $hasBilling, $hasShipping);
-                }
-
-            // Save this single address
-            } else {
-                $rt = $this->saveAddress($customer, $data, array(), true, true);
-            }
-
-            if(!empty($rt)) {
-                return $rt;
-            }
+        if(!empty($rt)) {
+            return $rt;
         }
 
         // Save the orders
@@ -164,31 +139,28 @@ class Yireo_Vm2Mage_Model_User_Api extends Mage_Customer_Model_Customer_Api
     /**
      * Save the customer address
      */
-    private function saveAddress($customer, $data, $customerData, $hasBilling, $hasShipping)
+    private function saveAddress($customer, $data, $customerData)
     {
         // Load both addressses 
         $shippingAddress = $customer->getPrimaryShippingAddress();
         $billingAddress = $customer->getPrimaryBillingAddress();
-
-        // Defaults
-        $is_shipping = ($hasShipping) ? false : true;
-        $is_billing = ($hasBilling) ? false : true;
 
         // Determine the address-types
         if(isset($data['address_type']) && strtolower($data['address_type']) == 'st') {
             $address = $shippingAddress;
             $is_shipping = true;
 
-        } elseif(isset($data['address_type']) && strtolower($data['address_type']) == 'bt') {
+        } else {
             $address = $billingAddress;
             $is_billing = true;
         }
+        #Mage::helper('vm2mage')->debug('Magento address', $address->debug());
 
-        if(!is_object($address)) {
-            $address = Mage::getModel('customer/address');
-        }
-
-        //Mage::helper('vm2mage')->debug('Magento address', $address->debug());
+        // Some extra overrides
+        $is_shipping = (empty($shippingAddress)) ? true : false;
+        $is_billing = (empty($billingAddress)) ? true : false;
+        $is_billing = true;
+        $is_shipping = true;
 
         // Load the address
         if(empty($address)) {
@@ -212,9 +184,8 @@ class Yireo_Vm2Mage_Model_User_Api extends Mage_Customer_Model_Customer_Api
 
         // Load the region
         $region = null;
-        if(empty($data['state']) && !empty($customerData['state'])) $data['state'] = $customerData['state'];
-        if(empty($data['state']) && !empty($customerData['region'])) $data['state'] = $customerData['region'];
-        if(!empty($data['state'])) $region = Mage::getModel('directory/region')->loadByCode($data['state'], $country->getId());
+        if(empty($data['region']) && !empty($customerData['region'])) $data['region'] = $customerData['region'];
+        if(!empty($data['region'])) $region = Mage::getModel('directory/region')->loadByCode($data['state'], $country->getId());
 
         // Set basic values
         $address
@@ -235,6 +206,7 @@ class Yireo_Vm2Mage_Model_User_Api extends Mage_Customer_Model_Customer_Api
             'fax' => 'fax',
             'city' => 'city',
             'zip' => 'postcode',
+            'state' => 'region',
             'country' => 'country',
             'taxvat' => 'vat_id',
         );
@@ -252,7 +224,6 @@ class Yireo_Vm2Mage_Model_User_Api extends Mage_Customer_Model_Customer_Api
         // Set the region
         if(!empty($region)) {
             $address->setRegionId($region->getId());
-            $address->setRegionName($region->getName());
         }
 
         // Set the customer if needed
@@ -380,7 +351,6 @@ class Yireo_Vm2Mage_Model_User_Api extends Mage_Customer_Model_Customer_Api
                 $model->setOrderId($order['order_id']);
                 $model->setOrderNumber($order['order_number']);
                 $model->setOrderTotal($order['order_total']);
-                $model->setOrderSubtotal($order['order_subtotal']);
                 $model->setOrderCurrency($order_currency);
                 $model->setOrderTax($order['order_tax']);
                 $model->setOrderTaxDetails($order['order_tax_details']);
@@ -390,11 +360,11 @@ class Yireo_Vm2Mage_Model_User_Api extends Mage_Customer_Model_Customer_Api
                 $model->setOrderDiscount($order['order_discount']);
                 $model->setOrderStatusName($order['order_status_name']);
                 $model->setOrderStatus($order['order_status']);
-                $model->setCreateDate($order['create_date']);
-                $model->setModifyDate($order['modify_date']);
+                $model->setCreateDate($order['cdate']);
+                $model->setModifyDate($order['mdate']);
+                $model->setShipMethodId($order['ship_method_id']);
                 $model->setCustomerNote($order['customer_note']);
                 $model->setPaymentMethod($order['payment_method']);
-                if(isset($order['shipment_method'])) $model->setShipMethodId($order['shipment_method']);
                 $model->save(); // skipped: order_id, vendor_id, user_info_id, ip-address
 
                 // Loop through the order-items and save them as well

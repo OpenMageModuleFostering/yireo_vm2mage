@@ -5,8 +5,8 @@
  *
  * @author Yireo
  * @package Vm2Mage
- * @copyright Copyright 2014
- * @license Open Source License
+ * @copyright Copyright 2013
+ * @license Yireo EULA (www.yireo.com)
  * @link http://www.yireo.com
  */
 -->
@@ -59,16 +59,6 @@
                             <show_in_store>1</show_in_store>
                             <comment>Delete old images and re-import new</comment>
                         </renew_images>
-                        <renew_customers translate="label">
-                            <label>Renew Customers</label>
-                            <frontend_type>select</frontend_type>
-                            <source_model>adminhtml/system_config_source_yesno</source_model>
-                            <sort_order>40</sort_order>
-                            <show_in_default>1</show_in_default>
-                            <show_in_website>1</show_in_website>
-                            <show_in_store>1</show_in_store>
-                            <comment>If disabled, customer-orders are still migrated</comment>
-                        </renew_customers>
                         <delete_attributes translate="label">
                             <label>Delete Existing Attributes</label>
                             <frontend_type>select</frontend_type>

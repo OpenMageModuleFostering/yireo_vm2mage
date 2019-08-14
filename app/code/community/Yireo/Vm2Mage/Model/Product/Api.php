@@ -4,7 +4,7 @@
  *
  * @author Yireo
  * @package Vm2Mage
- * @copyright Copyright 2014
+ * @copyright Copyright 2013
  * @license Open Source License
  * @link http://www.yireo.com
  */
@@ -19,12 +19,10 @@ class Yireo_Vm2Mage_Model_Product_Api extends Mage_Catalog_Model_Product_Api
      */
     public function migrate($data = null)
     {
-        Mage::helper('vm2mage')->init();
-
         // Check for empty data
         if(!is_array($data)) {
             //Mage::helper('vm2mage')->debug('VirtueMart product', $data);
-            return array(0, 'Data is not an array');
+            return array(0, "Data is not an array");
         }
 
         // Decode all values
@@ -32,22 +30,12 @@ class Yireo_Vm2Mage_Model_Product_Api extends Mage_Catalog_Model_Product_Api
         //Mage::helper('vm2mage')->debug('VirtueMart product', $data);
 
         // Determine the product-type
-        if(isset($data['has_children']) && $data['has_children'] > 0 && !empty($data['attributes_sku'])) {
-            $typeId = Mage_Catalog_Model_Product_Type::TYPE_CONFIGURABLE;
-        } elseif(isset($data['has_children']) && $data['has_children'] > 0) {
+        if($data['has_children'] > 0) {
+            // @todo: Provide a switch
             $typeId = Mage_Catalog_Model_Product_Type::TYPE_GROUPED;
+            //$typeId = Mage_Catalog_Model_Product_Type::TYPE_CONFIGURABLE;
         } else {
             $typeId = Mage_Catalog_Model_Product_Type::TYPE_SIMPLE;
-        }
-
-        // Determine the children of this product already exist
-        if(isset($data['has_children']) && $data['has_children'] > 0) {
-            foreach($data['children'] as $child) {
-                $childId = Mage::getModel('catalog/product')->getIdBySku($child['sku']);
-                if($childId > 0) {
-                    return array(0, 'Child product has not been created yet. Skipping parent.');
-                }
-            }
         }
 
         // Optionally lock the indexer
@@ -59,15 +47,8 @@ class Yireo_Vm2Mage_Model_Product_Api extends Mage_Catalog_Model_Product_Api
         // Try to get the productId by looking for the SKU
         $sku = $data['sku'];
         $productId = Mage::getModel('catalog/product')->getIdBySku($sku);
-        $storeId = Mage::helper('vm2mage')->getStoreId($data);
+        $storeId = (isset($data['store_id'])) ? $data['store_id'] : 1;
         $taxId = (isset($data['product_tax_id'])) ? $data['product_tax_id'] : 0;
-
-        // Only set this store if its not the default Store View
-        if (Mage::app()->isSingleStoreMode() == false) {
-            if($storeId != Mage::helper('vm2mage')->getDefaultStoreId($storeId)) {
-                $product->setStoreId($storeId);
-            }
-        }
 
         // Load the product by its productId
         if($productId > 0) {
@@ -95,9 +76,10 @@ class Yireo_Vm2Mage_Model_Product_Api extends Mage_Catalog_Model_Product_Api
             $data['status'] = Mage_Catalog_Model_Product_Status::STATUS_DISABLED;
         }
 
-        // Make sure descriptions match
-        if(empty($data['short_description'])) $data['short_description'] = $data['name'];
-        if(empty($data['description'])) $data['description'] = $data['short_description'];
+        // Make sure there is a short-description
+        if(empty($data['short_description'])) {
+            $data['short_description'] = $data['name'];
+        }
 
         // Set common attributes
         $product->setData($product->getData())
@@ -109,11 +91,6 @@ class Yireo_Vm2Mage_Model_Product_Api extends Mage_Catalog_Model_Product_Api
             ->setStatus($data['status'])
             ->setTaxClassId($taxId)
         ;
-
-        // Set for single store mode
-        if (Mage::app()->isSingleStoreMode()) {
-            $product->setWebsiteIds(array(Mage::app()->getStore(true)->getWebsite()->getId()));
-        }
 
         // Set weight
         if(isset($data['weight'])) {
@@ -144,7 +121,7 @@ class Yireo_Vm2Mage_Model_Product_Api extends Mage_Catalog_Model_Product_Api
             $product->setMetaTitle($product->getTitle());
         }
 
-        // Set the attributes
+        // Set the custom attributes
         if(isset($data['attributes'])) {
             foreach($data['attributes'] as $name => $value) {
                 //Mage::helper('vm2mage')->debug('Product attribute', $name);
@@ -164,54 +141,28 @@ class Yireo_Vm2Mage_Model_Product_Api extends Mage_Catalog_Model_Product_Api
 
         // Set the special price from-date
         if(isset($data['special_price']['start_date'])) {
-            $tmp_date = strtotime($data['special_price']['start_date']);
-            if($tmp_date > 0) {
-                $product->setSpecialFromDate($data['special_price']['start_date']);
-            }
-        } else {
-            $product->setSpecialFromDate(null);
+            $product->setSpecialFromDate($data['special_price']['start_date']);
         }
 
         // Set the special price from-date
         if(isset($data['special_price']['end_date'])) {
-            $tmp_date = strtotime($data['special_price']['end_date']);
-            if($tmp_date > 0) {
-                $product->setSpecialToDate($data['special_price']['end_date']);
-            }
-        } else {
-            $product->setSpecialToDate(null);
-        }
-
-        // Set the tier pricing
-        if(!empty($data['all_prices']) && count($data['all_prices']) > 1) {
-            $tierPrices = array();
-            foreach($data['all_prices'] as $price) {
-
-                if(!isset($price['price_quantity_start'])) continue;
-                if($price['price_quantity_start'] < 1) continue;
-                if($price['price_quantity_end'] < 1) continue;
-                
-                $customerGroup = Mage_Customer_Model_Group::CUST_GROUP_ALL;
-                $customerAllGroups = 1;
-                // @todo: Use a mapping for customer_groups
-                //if($price['shopper_group_default'] == 0) {
-                //    $customerAllGroups = 1;
-                //}
-
-                $tierPrices[] = array(
-                    'website_id' => 0,
-                    'all_groups' => $customerAllGroups,
-                    'cust_group' => $customerGroup,
-                    'price_qty' => $price['price_quantity_start'],
-                    'price' => $price['product_price'],
-                );
-            }
-            $product->setTierPrice($tierPrices);
+            $product->setSpecialToDate($data['special_price']['end_date']);
         }
 
         // Handle the stock
-        if($typeId == Mage_Catalog_Model_Product_Type::TYPE_GROUPED) {
-            $data['in_stock'] = null;
+        if($typeId == Mage_Catalog_Model_Product_Type::TYPE_GROUPED) $data['in_stock'] = null;
+        if(!empty($data['in_stock']) && $data['in_stock'] > 0) {
+            $stockData = $product->getStockData();
+            //Mage::helper('vm2mage')->debug('VirtueMart product stock-data', $stockData);
+            $stockData['qty'] = $data['in_stock'];
+            $stockData['is_in_stock'] = 1;
+            $stockData['manage_stock'] = 1;
+            $stockData['use_config_manage_stock'] = 0;
+            $product->setStockData($stockData);
+        } else {
+            $stockData = $product->getStockData();
+            $stockData['manage_stock'] = 0;
+            $product->setStockData($stockData);
         }
 
         // Convert the category-IDs
@@ -237,6 +188,15 @@ class Yireo_Vm2Mage_Model_Product_Api extends Mage_Catalog_Model_Product_Api
         $product->setIsMassupdate(true);
         $product->setExcludeUrlRewrite(true);
             
+        // Get the remote images
+        if(isset($data['images'])) {
+            try {
+                $product = Mage::helper('vm2mage/image')->addImages($product, $data['images']);
+            } catch(Exception $e) {
+                return array(0, $e->getMessage());
+            }
+        }
+
         // Add the related products
         if(!empty($data['related_products'])) {
             try {
@@ -250,98 +210,27 @@ class Yireo_Vm2Mage_Model_Product_Api extends Mage_Catalog_Model_Product_Api
         try {
             $request = Mage::app()->getFrontController()->getRequest();
             Mage::dispatchEvent('catalog_product_prepare_save', array('product' => $product, 'request' => $request));
-            $product->getResource()->save($product);
-            $product = $product->load($product->getId());
+            $product->save();
         } catch(Exception $e) {
             return array(0, '['.$sku.'] '.$e->getMessage());
         }
 
-        // Set the stock
-        $stockItem = Mage::getModel('cataloginventory/stock_item')->loadByProduct($product);
-        if(!empty($data['in_stock']) && $data['in_stock'] > 0) {
-            $stockItem->setData('qty', (int) $data['in_stock']);
-            $stockItem->setData('is_in_stock', 1);
-            $stockItem->setData('manage_stock', 1);
-            $stockItem->setData('use_config_manage_stock', 0);
-        } else {
-            $stockItem->setData('manage_stock', 0);
-            $stockItem->setData('use_config_manage_stock', 0);
-        }
-
-        if(!$stockItem->getId() > 0) {
-            $stockItem->setData('stock_id', 1);
-            $stockItem->setData('product_id', $product->getId());
-        }
-
-        $stockItem->save();
-        $product->save();
-
-        // Set the Custom Options
-        if(isset($data['custom_options']) || isset($data['custom_option'])) {
-
-            // Merge all options
-            $custom_options = array();
-            if(isset($data['custom_option'])) $custom_options[] = $data['custom_option'];
-            if(!empty($data['custom_options'])) $custom_options = array_merge($custom_options, $data['custom_options']);
-            
-            // Remove all current options
-            $options = $product->getOptions();
-            if(!empty($options)) {
-                foreach($options as $option) { 
-                    $option->delete(); 
-                } 
-            }
-            
-            // Add the custom options again
-            $new_options = array();
-            foreach($custom_options as $custom_option) {
-                $option = Mage::helper('vm2mage/product')->addCustomOptionToProduct($product, $custom_option);
-                //Mage::helper('vm2mage')->debug('Product Custom Option', $option);
-
-                $product->setHasOptions(1);
-                $productOption = Mage::getModel('catalog/product_option')
-                    ->setProductId($product->getId())
-                    ->setStoreId($product->getStoreId())
-                    ->addData($option);
-                $productOption->save();
-                $product->addOption($productOption);
-            }
-
-            // Try to save this product to the database
-            try {
-                $request = Mage::app()->getFrontController()->getRequest();
-                Mage::dispatchEvent('catalog_product_prepare_save', array('product' => $product, 'request' => $request));
-                $product->getResource()->save($product);
-                $product = $product->load($product->getId());
-            } catch(Exception $e) {
-                return array(0, '['.$sku.'] '.$e->getMessage());
-            }
-        }
-
         // Configure this product as configurable product
-        if(isset($data['has_children']) && $data['has_children'] > 0) {
+        if($data['has_children'] > 0) {
             if($typeId == Mage_Catalog_Model_Product_Type::TYPE_GROUPED) {
                 $rs = Mage::helper('vm2mage/product')->addChildrenToGrouped($data['children'], $product);
-            } elseif($typeId == Mage_Catalog_Model_Product_Type::TYPE_CONFIGURABLE) {
-                $rs = Mage::helper('vm2mage/product')->addChildrenToConfigurable($data['children'], $data['attributes_sku'], $product);
+            } else {
+                if(isset($data['attributes_sku']) && is_array($data['attributes_sku'])) {
+                    $rs = Mage::helper('vm2mage/product')->addChildrenToConfigurable($data['children'], $data['attributes_sku'], $product);
+                } else {
+                    $rs = Mage::helper('vm2mage/product')->addChildrenToConfigurable($data['children'], array(), $product);
+                }
             }
 
             if(!empty($rs)) {
                 return $rs;
             }
         }
-
-        // Get the remote images
-        if(isset($data['images'])) {
-            try {
-                Mage::helper('vm2mage/image')->addImages($product, $data['images']);
-            } catch(Exception $e) {
-                return array(0, $e->getMessage());
-            }
-        }
-
-        // Apply rules
-        Mage::getModel('catalogrule/rule')->applyAllRulesToProduct($product->getId());
 
         // Return true by default
         if($isNew) {

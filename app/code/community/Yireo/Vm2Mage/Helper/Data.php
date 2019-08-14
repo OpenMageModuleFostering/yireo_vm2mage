@@ -4,7 +4,7 @@
  *
  * @author Yireo
  * @package Vm2Mage
- * @copyright Copyright 2014
+ * @copyright Copyright 2013
  * @license Open Source License
  * @link http://www.yireo.com
  */
@@ -73,27 +73,17 @@ class Yireo_Vm2Mage_Helper_Data extends Mage_Core_Helper_Abstract
         }
 
         $logfile = self::getDebugLog();
-
-        if(!is_writable($logfile)) {
-            throw new Exception('Logfile '.$logfile.' not writable');
+        if(@is_writable($logfile)) {
+            @file_put_contents($logfile, $string."\n", FILE_APPEND);
         }
-
-        file_put_contents($logfile, $string."\n", FILE_APPEND);
-    }
-
-    /*
-     * Helper-method to initialize settings
-     */
-    public function init()
-    {
-        ini_set('display_errors', 1);
-        error_reporting(E_ALL & ~E_NOTICE);
     }
 
     /*
      * Helper-method to initialize debugging
      *
-     * @return boolean
+     * @param string $string
+     * @param mixed $mixed
+     * @return null
      */
     public function initDebug()
     {
@@ -102,6 +92,7 @@ class Yireo_Vm2Mage_Helper_Data extends Mage_Core_Helper_Abstract
             return false;
         }
 
+        ini_set('display_errors', 1);
         Mage::setIsDeveloperMode(true);
         return true;
     }
@@ -114,10 +105,9 @@ class Yireo_Vm2Mage_Helper_Data extends Mage_Core_Helper_Abstract
         foreach($array as $name => $value) {
             if(is_array($value)) {
                 $value = Mage::helper('vm2mage')->encode($value);
-            } elseif(!empty($value) && !is_numeric($value)) {
+            } elseif(!empty($value)) {
                 $value = base64_encode($value);
             }
-
             $array[$name] = $value;
         }
         return $array;
@@ -132,67 +122,14 @@ class Yireo_Vm2Mage_Helper_Data extends Mage_Core_Helper_Abstract
             if(is_array($value)) {
                 $value = Mage::helper('vm2mage')->decode($value);
             } elseif(!empty($value) && preg_match('/^V2M___/', $value)) {
-                $value = Mage::helper('vm2mage')->decodeString($value);
+                $value = preg_replace('/^V2M___/', '', $value);
+                $value = base64_decode($value);
             }
-
-            $originalName = $name;
-            $name = Mage::helper('vm2mage')->decodeString($name);
 
             if(!empty($value)) {
                 $array[$name] = $value;
             }
-
-            if ($name != $originalName) {
-                unset($array[$originalName]);
-            }
         }
         return $array;
-    }
-
-    /*
-     * Recursive function to decode a value
-     */
-    public function decodeString($string = null)
-    {
-        if(!empty($string) && preg_match('/^V2M___/', $string)) {
-            $string = preg_replace('/^V2M___/', '', $string);
-            $string = base64_decode($string);
-        }
-
-        return $string;
-    }
-
-    public function getStoreId($data)
-    {
-        if (is_array($data)) {
-            if (!empty($data['store_id'])) {
-                $data = $data['store_id'];
-            } elseif (!empty($data['store'])) {
-                $data = $data['store'];
-            }
-        }
-
-        if (!empty($data) && (is_string($data) || is_numeric($data))) {
-            $store = Mage::getModel('core/store')->load($data);
-            $storeId = $store->getId();
-            if ($storeId > 0) {
-                return $storeId;
-            }
-        }
-
-        return $this->getDefaultWebsite()->getDefaultStore()->getId();
-    }
-
-    public function getDefaultStoreId($data)
-    {
-        $currentStoreId = $this->getStoreId($data);
-        $websiteId = Mage::getModel('core/store')->load($currentStoreId)->getWebsiteId();
-        return Mage::app()->getWebsite($websiteId)->getDefaultGroup()->getDefaultStoreId();
-    }
-
-    public function getDefaultWebsite()
-    {
-        $websites = Mage::app()->getWebsites();
-        return $websites[1];
     }
 }
