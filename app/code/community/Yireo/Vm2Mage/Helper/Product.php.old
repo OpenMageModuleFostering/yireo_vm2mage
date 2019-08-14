@@ -1,0 +1,75 @@
+<?php
+/**
+ * Yireo Vm2Mage for Magento 
+ *
+ * @author Yireo
+ * @package Vm2Mage
+ * @copyright Copyright 2011
+ * @license Open Source License
+ * @link http://www.yireo.com
+ */
+
+/**
+ * Vm2Mage helper
+ */
+class Yireo_Vm2Mage_Helper_Product extends Yireo_Vm2Mage_Helper_Data
+{
+    /*
+     * Helper-method to convert a regular array to the options-structure required by the Attribute-model
+     *
+     * @param array $values
+     * @return array
+     */
+    public function addChildrenToConfigurable($children = array(), $attribute_codes = array(), $product = null)
+    {
+        // Create the children first as Simple Products and them to usable arrays
+        $childIds = array();
+        foreach($children as $child) {
+            Mage::getModel('vm2mage/product_api')->migrate($child);
+            $childId = Mage::getModel('catalog/product')->getIdBySku($child['sku']);
+            $childIds[] = $childId;
+        }
+
+        // Insert the Simple Products that belong in this Configurable Product
+        $loader = Mage::getResourceModel('catalog/product_type_configurable')->load($product);
+        $loader->saveProducts($product, $childIds);
+
+        // Gather the attribute-objects for use in this Configurable Product
+        $usedAttributeIds = array();
+        foreach($attribute_codes as $attribute_code) {
+            $attribute = $product->getResource()->getAttribute($attribute_code);
+            if($product->getTypeInstance()->canUseAttribute($attribute)) {
+                $usedAttributeIds[] = $attribute->getAttributeId();
+            }
+        }
+
+        // Insert the attributes that belong in this Configurable Product
+        if(!empty($usedAttributeIds)) {
+
+            // Set the attribute-IDs for this product
+            $product->getTypeInstance()->setUsedProductAttributeIds($usedAttributeIds, $product);
+
+            // Get the attributes-data and parse it a bit
+            $attributesData = $product->getTypeInstance()->getConfigurableAttributesAsArray();
+            foreach($attributesData as $key => $attribute_value) {
+                $attributesData[$key]['label'] = $attribute_value['frontend_label'];
+            }
+            Mage::helper('vm2mage')->debug('Configurable Product Attributes', $attributesData);
+
+            // Insert the attributes-data into the product
+            $product->setConfigurableAttributesData($attributesData);
+            $product->setCanSaveConfigurableAttributes(true);
+
+            //$product->setCanSaveCustomOptions(true);
+            //$product->setProductOptions(); ???
+        }
+
+        // Try to safe this product to the database
+        try {
+            $product->save();
+        } catch(Exception $e) {
+            return array(0, $e->getMessage());
+        }
+    }
+}
+

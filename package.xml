@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package>
+    <name>Yireo_Vm2Mage</name>
+    <version>0.10.0</version>
+    <stability>stable</stability>
+    <license>Open Source License</license>
+    <channel>community</channel>
+    <extends/>
+    <summary>Migrates data from VirtueMart to Magento</summary>
+    <description>Migrates data from VirtueMart to Magento</description>
+    <notes>Migrates data from VirtueMart to Magento</notes>
+    <authors><author><name>Yireo</name><user>yireo</user><email>info@yireo.com</email></author></authors>
+    <date>2013-02-26</date>
+    <time>09:15:07</time>
+    <contents><target name="mageetc"><dir name="modules"><file name="Yireo_Vm2Mage.xml" hash="bee76713ff8df9db330a8385b2465041"/></dir></target><target name="magecommunity"><dir name="Yireo"><dir name="Vm2Mage"><dir name="Block"><file name="Check.php" hash="dae596a80acf62fd798cafec13a05584"/></dir><dir name="Helper"><file name="Attribute.php" hash="d73a26b0540348e8ad35f1e6a5789c87"/><file name="Category.php" hash="7d8311ec4cc146ef7ac9fa477cad05bc"/><file name="Data.php" hash="7184457a80bb2a974753d6bba7e045b9"/><file name="Image.php" hash="7374dddacd4ac0c6b71a34ad6904e243"/><file name="Price.php" hash="c21f7e2106c2f818fcc363349e727b9b"/><file name="Product.php" hash="8b1804224432971d11d73ce993fd49d3"/><file name="Product.php.old" hash="be8e09d7fd14e1f054dd540c26da6542"/></dir><dir name="Model"><dir name="Attribute"><file name="Api.php" hash="5774987d0db27eb1c587e7ed814afc68"/></dir><dir name="Category"><file name="Api.php" hash="0cd640c547cc6b141320f98932948105"/></dir><file name="Observer.php" hash="cdee87eb6b9b6904f00b1440b2517ba3"/><dir name="Order"><file name="Api.php" hash="6031c65939565544cec8553a6ce6f6a0"/></dir><dir name="Product"><file name="Api.php" hash="615e10c79dfa333680bca5e3110c50f9"/></dir><dir name="User"><file name="Api.php" hash="bff5f2b63aa610533bf3acc711a2368c"/></dir><dir name="Widget"><file name="Api.php" hash="e1e93c3125e6f45a62c20faf2543df65"/></dir></dir><dir name="controllers"><file name="IndexController.php" hash="37eacaa1353bf798ba0d1a98e27d3fc4"/></dir><dir name="etc"><file name="api.xml" hash="9f11bf6ce08e658064fa06ae577dab61"/><file name="config.old" hash="32c8c8682c10d08fa11fc422ee29972d"/><file name="config.xml" hash="95769a56eb659528a597dd39d0b9010f"/></dir><dir name="sql"><dir name="vm2mage_setup"><file name="mysql4-install-0.5.4.php" hash="7897eff4982379777523254b6e37b90a"/></dir></dir></dir></dir></target><target name="magedesign"><dir name="adminhtml"><dir name="default"><dir name="default"><dir name="template"><dir name="vm2mage"><file name="check.phtml" hash="3e8e7562214ddb2d3c52f7f9c3e87ed2"/></dir></dir></dir></dir></dir></target></contents>
+    <compatible/>
+    <dependencies><required><php><min>5.2.8</min><max>6.0.0</max></php></required></dependencies>
+</package>

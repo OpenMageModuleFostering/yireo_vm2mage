@@ -1,0 +1,123 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Vm2Mage API definitions
+ *
+ * @author Yireo
+ * @package Vm2Mage
+ * @copyright Copyright 2011
+ * @license Open Source License
+ * @link http://www.yireo.com
+ */
+-->
+<config>
+    <api>
+        <resources>
+            <vm2mage_widget translate="title" module="vm2mage">
+                <model>vm2mage/widget_api</model>
+                <title>Widget Api</title>
+                <acl>vm2mage/widget</acl>
+                <methods>
+                    <get_stores translate="title" module="vm2mage">
+                        <title>Store selection</title>
+                        <method>getStores</method>
+                    </get_stores>
+                    <get_product_tax_classes translate="title" module="vm2mage">
+                        <title>Product Tax Class selection</title>
+                        <method>getProductTaxClasses</method>
+                    </get_product_tax_classes>
+                    <get_customer_groups translate="title" module="vm2mage">
+                        <title>Customer Group selection</title>
+                        <method>getCustomerGroups</method>
+                    </get_customer_groups>
+                </methods>
+            </vm2mage_widget>
+            <vm2mage_category translate="title" module="vm2mage">
+                <model>vm2mage/category_api</model>
+                <title>Categories Api</title>
+                <acl>vm2mage/category</acl>
+                <methods>
+                    <list translate="title" module="vm2mage">
+                        <title>List of categories</title>
+                        <method>items</method>
+                    </list>
+                    <migrate translate="title" module="vm2mage">
+                        <title>Migrate a category</title>
+                        <method>migrate</method>
+                    </migrate>
+                </methods>
+            </vm2mage_category>
+            <vm2mage_product translate="title" module="vm2mage">
+                <model>vm2mage/product_api</model>
+                <title>Products Api</title>
+                <acl>vm2mage/product</acl>
+                <methods>
+                    <list translate="title" module="vm2mage">
+                        <title>List of products</title>
+                        <method>items</method>
+                    </list>
+                    <migrate translate="title" module="vm2mage">
+                        <title>Migrate a product</title>
+                        <method>migrate</method>
+                    </migrate>
+                </methods>
+            </vm2mage_product>
+            <vm2mage_attribute translate="title" module="vm2mage">
+                <model>vm2mage/attribute_api</model>
+                <title>Attributes Api</title>
+                <acl>vm2mage/attribute</acl>
+                <methods>
+                    <initialize translate="title" module="vm2mage">
+                        <title>Initialize all attributes</title>
+                        <method>initialize</method>
+                    </initialize>
+                </methods>
+            </vm2mage_attribute>
+            <vm2mage_user translate="title" module="vm2mage">
+                <model>vm2mage/user_api</model>
+                <title>Users Api</title>
+                <acl>vm2mage/user</acl>
+                <methods>
+                    <list translate="title" module="vm2mage">
+                        <title>List of users</title>
+                        <method>items</method>
+                    </list>
+                    <migrate translate="title" module="vm2mage">
+                        <title>Migrate an user</title>
+                        <method>migrate</method>
+                    </migrate>
+                </methods>
+            </vm2mage_user>
+        </resources>
+
+        <acl>
+            <resources>
+                <vm2mage translate="title" module="vm2mage">
+                    <sort_order>9</sort_order>
+                    <title>Vm2Mage</title>
+                    <widget translate="title" module="vm2mage">
+                        <sort_order>1</sort_order>
+                        <title>HTML widgets</title>
+                    </widget>
+                    <category translate="title" module="vm2mage">
+                        <sort_order>1</sort_order>
+                        <title>Migrate Categories</title>
+                    </category>
+                    <product translate="title" module="vm2mage">
+                        <sort_order>1</sort_order>
+                        <title>Migrate Products</title>
+                    </product>
+                    <attribute translate="title" module="vm2mage">
+                        <sort_order>1</sort_order>
+                        <title>Migrate Attributes</title>
+                    </attribute>
+                    <user translate="title" module="vm2mage">
+                        <sort_order>1</sort_order>
+                        <title>Migrate Users</title>
+                    </user>
+                </vm2mage>
+            </resources>
+        </acl>
+
+    </api>
+</config>

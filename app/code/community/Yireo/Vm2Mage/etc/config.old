@@ -1,0 +1,132 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Yireo Vm2Mage for Magento 
+ *
+ * @author Yireo
+ * @package Vm2Mage
+ * @copyright Copyright 2011
+ * @license Yireo EULA (www.yireo.com)
+ * @link http://www.yireo.com
+ */
+-->
+<config>
+
+    <modules>
+        <Yireo_Vm2Mage>
+            <version>0.7.97</version>
+        </Yireo_Vm2Mage>
+    </modules>
+
+    <global>
+        <blocks>
+            <vm2mage>
+                <class>Yireo_Vm2Mage_Block</class>
+            </vm2mage>
+        </blocks>
+
+        <helpers>
+            <vm2mage>
+                <class>Yireo_Vm2Mage_Helper</class>
+            </vm2mage>
+        </helpers>
+
+        <models>
+            <vm2mage>
+                <class>Yireo_Vm2Mage_Model</class>
+            </vm2mage>
+        </models>
+
+        <resources>
+            <vm2mage_setup>
+                <setup>
+                    <module>Yireo_Vm2Mage</module>
+                    <class>Mage_Catalog_Model_Resource_Eav_Mysql4_Setup</class>
+                </setup>
+                <connection>
+                    <use>core_setup</use>
+                </connection>
+            </vm2mage_setup>
+            <vm2mage_write>
+                <connection>
+                    <use>core_write</use>
+                </connection>
+            </vm2mage_write>
+            <vm2mage_read>
+                <connection>
+                    <use>core_read</use>
+                </connection>
+            </vm2mage_read>
+        </resources>
+
+	</global>
+
+    <adminhtml>
+        <translate>
+            <modules>
+                <Yireo_Vm2Mage>
+                    <files>
+                        <default>Yireo_Vm2Mage.csv</default>
+                    </files>
+                </Yireo_Vm2Mage>
+            </modules>
+        </translate>
+        <menu>
+             <system>
+                <children>
+                    <tools>
+                        <children>
+                            <vm2mage translate="title" module="vm2mage">
+                                <title>Vm2Mage System Check</title>
+                                <action>vm2mage/index</action>
+                            </vm2mage>
+                        </children>
+                    </tools>
+                </children>
+             </system>
+        </menu>
+        <acl>
+            <resources>
+                <admin>
+                    <children>
+                        <system>
+                            <children>
+                                <config>
+                                    <children>
+                                        <vm2mage translate="title" module="vm2mage">
+                                            <title>Vm2Mage Section</title>
+                                        </vm2mage>
+                                    </children>
+                                </config>
+                            </children>
+                        </system>
+                    </children>
+                </admin>
+            </resources>
+        </acl>
+        <events>
+            <catalog_category_delete_after>
+                <observers>
+                    <vm2mage_observer>
+                        <type>singleton</type>
+                        <class>vm2mage/observer</class>
+                        <method>catalogCategoryDeleteAfter</method>
+                    </vm2mage_observer>
+                </observers>
+            </catalog_category_delete_after>
+        </events>
+    </adminhtml>
+
+    <admin>
+        <routers>
+            <vm2mage>
+                <use>admin</use>
+                <args>
+                    <module>Yireo_Vm2Mage</module>
+                    <frontName>vm2mage</frontName>
+                </args>
+            </vm2mage>
+        </routers>
+    </admin>
+
+</config>
