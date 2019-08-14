@@ -73,9 +73,12 @@ class Yireo_Vm2Mage_Helper_Data extends Mage_Core_Helper_Abstract
         }
 
         $logfile = self::getDebugLog();
-        if(@is_writable($logfile)) {
-            @file_put_contents($logfile, $string."\n", FILE_APPEND);
+
+        if(!is_writable($logfile)) {
+            throw new Exception('Logfile '.$logfile.' not writable');
         }
+
+        file_put_contents($logfile, $string."\n", FILE_APPEND);
     }
 
     /*
@@ -132,9 +135,15 @@ class Yireo_Vm2Mage_Helper_Data extends Mage_Core_Helper_Abstract
                 $value = Mage::helper('vm2mage')->decodeString($value);
             }
 
+            $originalName = $name;
             $name = Mage::helper('vm2mage')->decodeString($name);
+
             if(!empty($value)) {
                 $array[$name] = $value;
+            }
+
+            if ($name != $originalName) {
+                unset($array[$originalName]);
             }
         }
         return $array;
@@ -151,5 +160,39 @@ class Yireo_Vm2Mage_Helper_Data extends Mage_Core_Helper_Abstract
         }
 
         return $string;
+    }
+
+    public function getStoreId($data)
+    {
+        if (is_array($data)) {
+            if (!empty($data['store_id'])) {
+                $data = $data['store_id'];
+            } elseif (!empty($data['store'])) {
+                $data = $data['store'];
+            }
+        }
+
+        if (!empty($data) && (is_string($data) || is_numeric($data))) {
+            $store = Mage::getModel('core/store')->load($data);
+            $storeId = $store->getId();
+            if ($storeId > 0) {
+                return $storeId;
+            }
+        }
+
+        return $this->getDefaultWebsite()->getDefaultStore()->getId();
+    }
+
+    public function getDefaultStoreId($data)
+    {
+        $currentStoreId = $this->getStoreId($data);
+        $websiteId = Mage::getModel('core/store')->load($currentStoreId)->getWebsiteId();
+        return Mage::app()->getWebsite($websiteId)->getDefaultGroup()->getDefaultStoreId();
+    }
+
+    public function getDefaultWebsite()
+    {
+        $websites = Mage::app()->getWebsites();
+        return $websites[1];
     }
 }

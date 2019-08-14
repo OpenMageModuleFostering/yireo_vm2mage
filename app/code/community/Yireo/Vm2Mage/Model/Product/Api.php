@@ -59,8 +59,15 @@ class Yireo_Vm2Mage_Model_Product_Api extends Mage_Catalog_Model_Product_Api
         // Try to get the productId by looking for the SKU
         $sku = $data['sku'];
         $productId = Mage::getModel('catalog/product')->getIdBySku($sku);
-        $storeId = (isset($data['store_id'])) ? $data['store_id'] : 1;
+        $storeId = Mage::helper('vm2mage')->getStoreId($data);
         $taxId = (isset($data['product_tax_id'])) ? $data['product_tax_id'] : 0;
+
+        // Only set this store if its not the default Store View
+        if (Mage::app()->isSingleStoreMode() == false) {
+            if($storeId != Mage::helper('vm2mage')->getDefaultStoreId($storeId)) {
+                $product->setStoreId($storeId);
+            }
+        }
 
         // Load the product by its productId
         if($productId > 0) {
@@ -312,7 +319,7 @@ class Yireo_Vm2Mage_Model_Product_Api extends Mage_Catalog_Model_Product_Api
         }
 
         // Configure this product as configurable product
-        if($data['has_children'] > 0) {
+        if(isset($data['has_children']) && $data['has_children'] > 0) {
             if($typeId == Mage_Catalog_Model_Product_Type::TYPE_GROUPED) {
                 $rs = Mage::helper('vm2mage/product')->addChildrenToGrouped($data['children'], $product);
             } elseif($typeId == Mage_Catalog_Model_Product_Type::TYPE_CONFIGURABLE) {
@@ -327,7 +334,7 @@ class Yireo_Vm2Mage_Model_Product_Api extends Mage_Catalog_Model_Product_Api
         // Get the remote images
         if(isset($data['images'])) {
             try {
-                $product = Mage::helper('vm2mage/image')->addImages($product, $data['images']);
+                Mage::helper('vm2mage/image')->addImages($product, $data['images']);
             } catch(Exception $e) {
                 return array(0, $e->getMessage());
             }

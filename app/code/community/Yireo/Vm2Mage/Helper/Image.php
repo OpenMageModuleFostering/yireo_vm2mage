@@ -44,15 +44,61 @@ class Yireo_Vm2Mage_Helper_Image extends Yireo_Vm2Mage_Helper_Data
         Mage::helper('vm2mage')->debug('No download-methods available');
         return null;
     }
+
+    public function convertImages($images)
+    {
+        if(!is_array($images) || empty($images)) {
+            return $images;
+        }
+        
+        $newImages = array(); 
+        foreach($images as $imageIndex => $image) {
+
+            if(empty($image['file']) && empty($image['url'])) {
+                unset($images[$imageIndex]);
+                continue;
+            }
+
+            if(!isset($image['md5sum'])) $image['md5sum'] = null;
+            if(!isset($image['file'])) $image['file'] = null;
+            if(!isset($image['type'])) $image['type'] = null;
+            if(!isset($image['url'])) $image['url'] = null;
+            if(!isset($image['types'])) $image['types'] = array();
+
+            if($image['type'] == 'full_image') {
+                $image['types'][] = 'image';
+                $image['types'][] = 'small_image';
+            }
+
+            if($image['type'] == 'thumb_image') {
+                $image['types'][] = 'thumbnail';
+            }
+
+            if($image['type'] == 'gallery') {
+                $image['types'][] = 'gallery';
+            }
+
+            unset($image['type']);
+
+            $hash = md5($image['file'].$image['url']);
+            if (!isset($newImages[$hash])) {
+                $newImages[$hash] = $image;
+            } else {
+                $newImages[$hash]['types'] = array_merge($newImages[$hash]['types'], $image['types']);
+            }
+        }
+
+        return $newImages;
+    }
     
     /*
      * Add all remote images to this product 
      *
      * @param Mage_Catalog_Model_Product $product
      * @param array $images
-     * @return Mage_Catalog_Model_Product $product
+     * @return bool
      */
-    public function addImages($product = null, $images = null)
+    public function addImages(&$product = null, $images = null)
     {
         // Option to renew images or not
         $renewImages = (bool)Mage::getStoreConfig('vm2mage/settings/renew_images');
@@ -74,64 +120,32 @@ class Yireo_Vm2Mage_Helper_Image extends Yireo_Vm2Mage_Helper_Data
         }
 
         // Detect images first
-        $hasFullImage = false;
-        $hasThumbImage = false;
-        if(is_array($images) && !empty($images)) {
-            foreach($images as $image) {
-                if(empty($image['type'])) $image['type'] = null;
-
-                if($image['type'] == 'full_image') $hasFullImage = true;
-                if($image['type'] == 'thumbnail') $hasThumbImage = true;
-            }
-        }
+        $images = $this->convertImages($images);
 
         // Loop through the images and create them
         $migratedFiles = array();
         if(is_array($images) && !empty($images)) {
             foreach($images as $image) {
 
-                if(empty($image['md5sum'])) $image['md5sum'] = null;
-                if(empty($image['label'])) $image['label'] = $product->getName();
-                if(empty($image['file'])) $image['file'] = null;
                 if(!empty($image['md5sum']) && in_array($image['md5sum'], $migratedFiles)) continue;
+                if(empty($image['label'])) $image['label'] = $product->getName();
 
-                $imageTypes = array();
+                $imageTypes = $image['types'];
 
                 if(count($images) == 1) {
                     $imageTypes[] = 'thumbnail';
                     $imageTypes[] = 'image';
                     $imageTypes[] = 'small_image';
-
-                } elseif($image['type'] == 'full_image') {
-                    $imageTypes[] = 'image';
-                    $imageTypes[] = 'small_image';
-                    if(count($images) == 1) $imageTypes[] = 'thumbnail';
-
-                } elseif($image['type'] == 'thumb_image') {
-                    $imageTypes[] = 'thumbnail';
                 }
 
-                if($hasFullImage == false) {
-                    $imageTypes[] = 'image';
-                    $imageTypes[] = 'small_image';
-                    $hasFullImage = true;
-                } 
-                    
-                if($hasThumbImage == false) {
-                    $imageTypes[] = 'thumbnail';
-                    $hasThumbImage = true;
-                }       
-                    
                 $imageTypes = array_unique($imageTypes);
 
                 $result = self::addLocalImage($product, $image['file'], $image['label'], $imageTypes);
                 if($result != false) {
-                    $product = $result;
                     $migratedFiles[] = $image['md5sum'];
                 } elseif(!empty($image['url'])) {
-                    $result = self::addRemoteImage($product, $image['url'], $image['md5sum'], $image['type'], $image['label'], $imageTypes);
+                    $result = self::addRemoteImage($product, $image['url'], $image['md5sum'], $image['label'], $imageTypes);
                     if($result != false) {
-                        $product = $result;
                         $migratedFiles[] = $image['md5sum'];
                     }
                 }
@@ -141,7 +155,7 @@ class Yireo_Vm2Mage_Helper_Image extends Yireo_Vm2Mage_Helper_Data
         // Save the product
         $product->save();
 
-        return $product;
+        return true;
     }
 
     /*
@@ -150,13 +164,11 @@ class Yireo_Vm2Mage_Helper_Image extends Yireo_Vm2Mage_Helper_Data
      * @param Mage_Catalog_Model_Product $product
      * @param string $url
      * @param string $md5sum
-     * @param string $type
      * @param string $label thumb_image|full_image|gallery
-     * @return Mage_Catalog_Model_Product $product
+     * @return bool
      */
-    public function addRemoteImage($product = null, $url = null, $md5sum = null, $type = null, $label = null, $types = array())
+    public function addRemoteImage(&$product = null, $url = null, $md5sum = null, $label = null, $types = array())
     {
-
         // Try to create the import-directory it it does not exist
         $base_dir = Mage::getBaseDir('media').DS.'import';
         if(!is_dir($base_dir)) @mkdir($base_dir);
@@ -203,7 +215,7 @@ class Yireo_Vm2Mage_Helper_Image extends Yireo_Vm2Mage_Helper_Data
         }
 
         // Return the changed product-object
-        return $product;
+        return true;
     }
 
     /*
@@ -213,9 +225,9 @@ class Yireo_Vm2Mage_Helper_Image extends Yireo_Vm2Mage_Helper_Data
      * @param string $file
      * @param string $type
      * @param string $label thumb_image|full_image|gallery
-     * @return Mage_Catalog_Model_Product $product
+     * @return bool
      */
-    public function addLocalImage($product = null, $file = null, $label = null, $types = array())
+    public function addLocalImage(&$product = null, $file = null, $label = null, $types = array())
     {
         // Check if local-image-loading is enabled
         if(Mage::getStoreConfig('vm2mage/settings/local_images') == 0) {
@@ -271,6 +283,6 @@ class Yireo_Vm2Mage_Helper_Image extends Yireo_Vm2Mage_Helper_Data
         }
 
         // Return the changed product-object
-        return $product;
+        return true;
     }
 }
